@@ -17,7 +17,11 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from klayout_mcp.server import build_server
-from tests.fixtures.layout_factory import build_waveguide_fixture
+from tests.fixtures.layout_factory import (
+    build_hierarchical_fixture,
+    build_label_fixture,
+    build_waveguide_fixture,
+)
 
 
 class MCPClient:
@@ -40,3 +44,25 @@ def mcp_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> MCPClient:
 @pytest.fixture
 def generated_layout(tmp_path: Path):
     return build_waveguide_fixture(tmp_path)
+
+
+@pytest.fixture
+def generated_hierarchical_layout(tmp_path: Path):
+    return build_hierarchical_fixture(tmp_path)
+
+
+@pytest.fixture
+def generated_label_layout(tmp_path: Path):
+    return build_label_fixture(tmp_path)
+
+
+@pytest.fixture
+async def opened_hierarchical_session(mcp_client: MCPClient, generated_hierarchical_layout) -> str:
+    result = await mcp_client.call("open_layout", {"path": str(generated_hierarchical_layout.path)})
+    return result["session_id"]
+
+
+@pytest.fixture
+async def opened_label_session(mcp_client: MCPClient, generated_label_layout) -> str:
+    result = await mcp_client.call("open_layout", {"path": str(generated_label_layout.path)})
+    return result["session_id"]

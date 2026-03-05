@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from klayout_mcp.bridge.hierarchy import describe_cell, list_cells
 from klayout_mcp.bridge.layout_loader import LayerSummary, load_layout
 from klayout_mcp.config import Settings
 from klayout_mcp.errors import KLayoutMCPError
@@ -67,7 +68,35 @@ class LayoutTools:
         return self.session_store.close(session_id)
 
     def list_layers(self, session_id: str) -> dict[str, Any]:
-        self._require_session(session_id)
+        runtime = self._require_runtime(session_id)
+        layers = [self._layer_response(layer) for layer in runtime["layers"]]
+        return {"session_id": session_id, "layers": layers}
+
+    def list_cells(self, session_id: str, max_depth: int | None = None) -> dict[str, Any]:
+        runtime = self._require_runtime(session_id)
+        return {
+            "session_id": session_id,
+            "cells": list_cells(runtime["layout"], max_depth=max_depth),
+        }
+
+    def describe_cell(self, session_id: str, cell: str, depth: int = 1) -> dict[str, Any]:
+        runtime = self._require_runtime(session_id)
+        result = describe_cell(runtime["layout"], cell, depth=depth)
+        result["session_id"] = session_id
+        return result
+
+    def _layer_response(self, layer: LayerSummary) -> dict[str, Any]:
+        return layer.to_response()
+
+    def _require_runtime(self, session_id: str) -> dict[str, Any]:
+        session = self.session_store.get(session_id)
+        if session is None:
+            error_code = "SESSION_EXPIRED" if self.session_store.was_expired(session_id) else "SESSION_NOT_FOUND"
+            raise KLayoutMCPError(
+                error_code,
+                "Session is not available",
+                {"session_id": session_id},
+            )
         runtime = self.session_store.get_runtime(session_id)
         if runtime is None:
             raise KLayoutMCPError(
@@ -75,20 +104,4 @@ class LayoutTools:
                 "Session runtime is unavailable",
                 {"session_id": session_id},
             )
-
-        layers = [self._layer_response(layer) for layer in runtime["layers"]]
-        return {"session_id": session_id, "layers": layers}
-
-    def _layer_response(self, layer: LayerSummary) -> dict[str, Any]:
-        return layer.to_response()
-
-    def _require_session(self, session_id: str) -> None:
-        session = self.session_store.get(session_id)
-        if session is not None:
-            return
-        error_code = "SESSION_EXPIRED" if self.session_store.was_expired(session_id) else "SESSION_NOT_FOUND"
-        raise KLayoutMCPError(
-            error_code,
-            "Session is not available",
-            {"session_id": session_id},
-        )
+        return runtime

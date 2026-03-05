@@ -38,6 +38,8 @@ def build_server() -> FastMCP:
     implemented_tools = {
         "open_layout": layout_tools.open_layout,
         "close_session": layout_tools.close_session,
+        "list_cells": layout_tools.list_cells,
+        "describe_cell": layout_tools.describe_cell,
         "list_layers": layout_tools.list_layers,
     }
 
