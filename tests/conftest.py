@@ -19,6 +19,7 @@ if str(SRC) not in sys.path:
 from klayout_mcp.server import build_server
 from tests.fixtures.layout_factory import (
     build_dense_fixture,
+    build_directional_coupler_fixture,
     build_hierarchical_fixture,
     build_label_fixture,
     build_waveguide_fixture,
@@ -53,6 +54,11 @@ def generated_dense_layout(tmp_path: Path):
 
 
 @pytest.fixture
+def generated_coupler_layout(tmp_path: Path):
+    return build_directional_coupler_fixture(tmp_path)
+
+
+@pytest.fixture
 def generated_hierarchical_layout(tmp_path: Path):
     return build_hierarchical_fixture(tmp_path)
 
@@ -81,6 +87,36 @@ async def opened_dense_session(mcp_client: MCPClient, generated_dense_layout) ->
 
 
 @pytest.fixture
+async def opened_coupler_session(mcp_client: MCPClient, generated_coupler_layout) -> str:
+    result = await mcp_client.call("open_layout", {"path": str(generated_coupler_layout.path)})
+    return result["session_id"]
+
+
+@pytest.fixture
 async def opened_label_session(mcp_client: MCPClient, generated_label_layout) -> str:
     result = await mcp_client.call("open_layout", {"path": str(generated_label_layout.path)})
     return result["session_id"]
+
+
+@pytest.fixture
+async def queried_waveguide_region(mcp_client: MCPClient, opened_session) -> dict[str, object]:
+    return await mcp_client.call(
+        "query_region",
+        {
+            "session_id": opened_session,
+            "box": {"left": 0.0, "bottom": -5.0, "right": 50.0, "top": 5.0},
+            "hierarchy_mode": "recursive",
+        },
+    )
+
+
+@pytest.fixture
+async def queried_coupler_region(mcp_client: MCPClient, opened_coupler_session) -> dict[str, object]:
+    return await mcp_client.call(
+        "query_region",
+        {
+            "session_id": opened_coupler_session,
+            "box": {"left": 0.0, "bottom": -5.0, "right": 40.0, "top": 10.0},
+            "hierarchy_mode": "recursive",
+        },
+    )

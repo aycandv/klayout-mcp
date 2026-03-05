@@ -14,6 +14,8 @@
 
 ### Task 1: Bootstrap the repository
 
+**Status:** Completed
+
 **Files:**
 - Create: `README.md`
 - Create: `pyproject.toml`
@@ -73,6 +75,8 @@ git commit -m "chore: bootstrap klayout mcp package"
 ```
 
 ### Task 2: Add configuration, errors, and session storage
+
+**Status:** Completed
 
 **Files:**
 - Create: `src/klayout_mcp/config.py`
@@ -140,6 +144,8 @@ git commit -m "feat: add config and session storage"
 
 ### Task 3: Create programmatic layout fixtures
 
+**Status:** Completed
+
 **Files:**
 - Create: `tests/fixtures/layout_factory.py`
 - Create: `tests/test_layout_factory.py`
@@ -189,6 +195,8 @@ git commit -m "test: add generated klayout fixtures"
 ```
 
 ### Task 4: Implement `open_layout`, `close_session`, and `list_layers`
+
+**Status:** Completed
 
 **Files:**
 - Create: `src/klayout_mcp/bridge/layout_loader.py`
@@ -244,6 +252,8 @@ git commit -m "feat: add layout open and layer inspection tools"
 
 ### Task 5: Implement `list_cells` and `describe_cell`
 
+**Status:** Completed
+
 **Files:**
 - Create: `src/klayout_mcp/bridge/hierarchy.py`
 - Create: `tests/test_list_cells.py`
@@ -296,6 +306,8 @@ git commit -m "feat: add cell hierarchy inspection tools"
 ```
 
 ### Task 6: Implement `query_region`
+
+**Status:** Completed
 
 **Files:**
 - Create: `src/klayout_mcp/bridge/query.py`
@@ -369,6 +381,8 @@ git commit -m "feat: add bounded region queries"
 ```
 
 ### Task 7: Implement `measure_geometry`
+
+**Status:** Completed
 
 **Files:**
 - Create: `src/klayout_mcp/bridge/measure.py`

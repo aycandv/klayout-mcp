@@ -7,6 +7,7 @@ from typing import Any
 
 from klayout_mcp.bridge.hierarchy import describe_cell, list_cells
 from klayout_mcp.bridge.layout_loader import LayerSummary, load_layout
+from klayout_mcp.bridge.measure import measure_geometry
 from klayout_mcp.bridge.query import query_region
 from klayout_mcp.config import Settings
 from klayout_mcp.errors import KLayoutMCPError
@@ -107,6 +108,22 @@ class LayoutTools:
             hierarchy_mode=hierarchy_mode,
             max_shapes=max_shapes,
             max_instances=max_instances,
+        )
+        result["session_id"] = session_id
+        return result
+
+    def measure_geometry(
+        self,
+        session_id: str,
+        mode: str,
+        target_ids: list[str],
+    ) -> dict[str, Any]:
+        runtime = self._require_runtime(session_id)
+        result = measure_geometry(
+            runtime=runtime,
+            mode=mode,
+            target_ids=target_ids,
+            dbu=float(runtime["layout"].dbu),
         )
         result["session_id"] = session_id
         return result
