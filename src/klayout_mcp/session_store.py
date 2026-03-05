@@ -102,6 +102,13 @@ class SessionStore:
     def get_runtime(self, session_id: str) -> dict[str, Any] | None:
         return self._runtime.get(session_id)
 
+    def update_runtime(self, session_id: str, values: dict[str, Any]) -> dict[str, Any] | None:
+        runtime = self._runtime.get(session_id)
+        if runtime is None:
+            return None
+        runtime.update(values)
+        return runtime
+
     def _next_session_id(self) -> str:
         while True:
             session_id = f"ses_{secrets.token_hex(6)}"

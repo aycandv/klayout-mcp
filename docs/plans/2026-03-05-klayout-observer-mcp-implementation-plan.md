@@ -438,6 +438,8 @@ git commit -m "feat: add geometry measurement tools"
 
 ### Task 8: Implement `set_view` and `render_view`
 
+**Status:** Completed
+
 **Files:**
 - Create: `src/klayout_mcp/bridge/render.py`
 - Create: `tests/test_render_view.py`

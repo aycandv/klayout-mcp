@@ -9,6 +9,7 @@ from klayout_mcp.bridge.hierarchy import describe_cell, list_cells
 from klayout_mcp.bridge.layout_loader import LayerSummary, load_layout
 from klayout_mcp.bridge.measure import measure_geometry
 from klayout_mcp.bridge.query import query_region
+from klayout_mcp.bridge.render import default_view_state, render_view, update_view_state
 from klayout_mcp.config import Settings
 from klayout_mcp.errors import KLayoutMCPError
 from klayout_mcp.session_store import SessionStore
@@ -49,6 +50,11 @@ class LayoutTools:
                 "selected_top_cell": loaded.selected_top_cell,
                 "top_cells": loaded.top_cells,
                 "shape_refs": {},
+                "view": default_view_state(
+                    selected_top_cell=loaded.selected_top_cell,
+                    bbox_um=loaded.bbox_um,
+                    layers=loaded.layers,
+                ),
             },
         )
         return {
@@ -128,10 +134,57 @@ class LayoutTools:
         result["session_id"] = session_id
         return result
 
+    def set_view(
+        self,
+        session_id: str,
+        box: dict[str, float] | None = None,
+        cell: str | None = None,
+        layers: list[dict[str, int | str]] | None = None,
+    ) -> dict[str, Any]:
+        runtime = self._require_runtime(session_id)
+        view = update_view_state(
+            layout=runtime["layout"],
+            runtime=runtime,
+            box=box,
+            cell=cell,
+            layers=layers,
+        )
+        self.session_store.update_runtime(session_id, {"view": view})
+        return {"session_id": session_id, "view": view}
+
+    def render_view(
+        self,
+        session_id: str,
+        box: dict[str, float] | None = None,
+        cell: str | None = None,
+        layers: list[dict[str, int | str]] | None = None,
+        image_size: dict[str, int] | None = None,
+        annotations: list[dict[str, Any]] | None = None,
+        style: str = "light",
+    ) -> dict[str, Any]:
+        session, runtime = self._require_session_and_runtime(session_id)
+        return render_view(
+            session_id=session_id,
+            source_path=session.source_path,
+            artifact_dir=session.artifact_dir,
+            layout=runtime["layout"],
+            runtime=runtime,
+            box=box,
+            cell=cell,
+            layers=layers,
+            image_size=image_size,
+            style=style,
+            annotations=annotations,
+        )
+
     def _layer_response(self, layer: LayerSummary) -> dict[str, Any]:
         return layer.to_response()
 
     def _require_runtime(self, session_id: str) -> dict[str, Any]:
+        _, runtime = self._require_session_and_runtime(session_id)
+        return runtime
+
+    def _require_session_and_runtime(self, session_id: str) -> tuple[Any, dict[str, Any]]:
         session = self.session_store.get(session_id)
         if session is None:
             error_code = "SESSION_EXPIRED" if self.session_store.was_expired(session_id) else "SESSION_NOT_FOUND"
@@ -147,4 +200,4 @@ class LayoutTools:
                 "Session runtime is unavailable",
                 {"session_id": session_id},
             )
-        return runtime
+        return session, runtime

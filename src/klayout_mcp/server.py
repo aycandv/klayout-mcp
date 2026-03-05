@@ -43,6 +43,8 @@ def build_server() -> FastMCP:
         "list_layers": layout_tools.list_layers,
         "query_region": layout_tools.query_region,
         "measure_geometry": layout_tools.measure_geometry,
+        "set_view": layout_tools.set_view,
+        "render_view": layout_tools.render_view,
     }
 
     server = FastMCP(name="klayout-mcp")
