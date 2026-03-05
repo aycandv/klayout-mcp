@@ -19,6 +19,7 @@ class SessionStore:
         self._sessions_root.mkdir(parents=True, exist_ok=True)
         self._ttl = timedelta(seconds=ttl_seconds)
         self._sessions: dict[str, SessionRecord] = {}
+        self._runtime: dict[str, dict[str, Any]] = {}
         self._expired_session_ids: set[str] = set()
 
     @property
@@ -42,6 +43,7 @@ class SessionStore:
         top_cell: str,
         dbu: float,
         metadata: dict[str, Any] | None = None,
+        runtime: dict[str, Any] | None = None,
     ) -> SessionRecord:
         self._prune_expired()
         session_id = self._next_session_id()
@@ -62,6 +64,7 @@ class SessionStore:
             metadata=metadata or {},
         )
         self._sessions[session_id] = session
+        self._runtime[session_id] = runtime or {}
         self._write_session_file(session)
         return session
 
@@ -78,6 +81,7 @@ class SessionStore:
     def close(self, session_id: str) -> dict[str, bool | str]:
         self._prune_expired()
         session = self._sessions.pop(session_id, None)
+        self._runtime.pop(session_id, None)
         self._expired_session_ids.discard(session_id)
 
         artifact_dir_deleted = False
@@ -94,6 +98,9 @@ class SessionStore:
     def was_expired(self, session_id: str) -> bool:
         self._prune_expired()
         return session_id in self._expired_session_ids
+
+    def get_runtime(self, session_id: str) -> dict[str, Any] | None:
+        return self._runtime.get(session_id)
 
     def _next_session_id(self) -> str:
         while True:
@@ -112,6 +119,7 @@ class SessionStore:
 
             self._expired_session_ids.add(session_id)
             self._sessions.pop(session_id, None)
+            self._runtime.pop(session_id, None)
             if session.artifact_dir.exists():
                 shutil.rmtree(session.artifact_dir)
 
