@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from klayout_mcp.bridge.drc import extract_markers, run_drc_script
 from klayout_mcp.bridge.hierarchy import describe_cell, list_cells
 from klayout_mcp.bridge.layout_loader import LayerSummary, load_layout
 from klayout_mcp.bridge.measure import measure_geometry
@@ -50,6 +51,7 @@ class LayoutTools:
                 "selected_top_cell": loaded.selected_top_cell,
                 "top_cells": loaded.top_cells,
                 "shape_refs": {},
+                "drc_runs": {},
                 "view": default_view_state(
                     selected_top_cell=loaded.selected_top_cell,
                     bbox_um=loaded.bbox_um,
@@ -175,6 +177,41 @@ class LayoutTools:
             image_size=image_size,
             style=style,
             annotations=annotations,
+        )
+
+    def run_drc_script(
+        self,
+        session_id: str,
+        script_path: str,
+        script_type: str = "ruby",
+        params: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        session, runtime = self._require_session_and_runtime(session_id)
+        return run_drc_script(
+            session_id=session_id,
+            settings=self.settings,
+            session=session,
+            runtime=runtime,
+            script_path=script_path,
+            script_type=script_type,
+            params=params,
+        )
+
+    def extract_markers(
+        self,
+        session_id: str,
+        run_id: str,
+        include_crops: bool = False,
+        crop_size_um: dict[str, float] | None = None,
+    ) -> dict[str, Any]:
+        session, runtime = self._require_session_and_runtime(session_id)
+        return extract_markers(
+            session_id=session_id,
+            session=session,
+            runtime=runtime,
+            run_id=run_id,
+            include_crops=include_crops,
+            crop_size_um=crop_size_um,
         )
 
     def _layer_response(self, layer: LayerSummary) -> dict[str, Any]:

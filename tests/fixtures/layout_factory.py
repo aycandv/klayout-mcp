@@ -91,6 +91,15 @@ def build_dense_fixture(root: Path) -> GeneratedLayoutFixture:
     return _write_fixture(root, "dense", layout, top, (WG_LAYER,))
 
 
+def build_violation_fixture(root: Path) -> GeneratedLayoutFixture:
+    layout = _new_layout()
+    top = layout.create_cell("TOP")
+    wg = layout.layer(*WG_LAYER)
+    top.shapes(wg).insert(kdb.DPath([kdb.DPoint(0, 0), kdb.DPoint(20, 0)], 0.5))
+    top.shapes(wg).insert(kdb.DPath([kdb.DPoint(0, 1.0), kdb.DPoint(20, 1.0)], 0.5))
+    return _write_fixture(root, "violation", layout, top, (WG_LAYER,))
+
+
 def build_all_fixtures(root: Path) -> dict[str, GeneratedLayoutFixture]:
     return {
         "waveguide": build_waveguide_fixture(root),
@@ -99,6 +108,7 @@ def build_all_fixtures(root: Path) -> dict[str, GeneratedLayoutFixture]:
         "dense": build_dense_fixture(root),
         "hierarchical": build_hierarchical_fixture(root),
         "labels": build_label_fixture(root),
+        "violation": build_violation_fixture(root),
     }
 
 

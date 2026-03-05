@@ -509,6 +509,8 @@ git commit -m "feat: add deterministic rendering tools"
 
 ### Task 9: Implement `run_drc_script` and `extract_markers`
 
+**Status:** Completed
+
 **Files:**
 - Create: `src/klayout_mcp/bridge/drc.py`
 - Create: `tests/test_run_drc_script.py`

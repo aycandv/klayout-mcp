@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
 
@@ -12,6 +13,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
+KLAYOUT_BIN = Path("/Applications/klayout.app/Contents/MacOS/klayout")
 
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
@@ -22,6 +24,7 @@ from tests.fixtures.layout_factory import (
     build_directional_coupler_fixture,
     build_hierarchical_fixture,
     build_label_fixture,
+    build_violation_fixture,
     build_waveguide_fixture,
 )
 
@@ -40,6 +43,8 @@ def mcp_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> MCPClient:
     monkeypatch.setenv("KLAYOUT_MCP_ARTIFACT_ROOT", str(tmp_path / ".artifacts"))
     monkeypatch.setenv("KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS", str(tmp_path))
     monkeypatch.setenv("KLAYOUT_MCP_ALLOWED_DRC_ROOTS", str(tmp_path))
+    if KLAYOUT_BIN.exists():
+        monkeypatch.setenv("KLAYOUT_BIN", str(KLAYOUT_BIN))
     return MCPClient()
 
 
@@ -69,6 +74,11 @@ def generated_label_layout(tmp_path: Path):
 
 
 @pytest.fixture
+def generated_violation_layout(tmp_path: Path):
+    return build_violation_fixture(tmp_path)
+
+
+@pytest.fixture
 async def opened_hierarchical_session(mcp_client: MCPClient, generated_hierarchical_layout) -> str:
     result = await mcp_client.call("open_layout", {"path": str(generated_hierarchical_layout.path)})
     return result["session_id"]
@@ -93,9 +103,42 @@ async def opened_coupler_session(mcp_client: MCPClient, generated_coupler_layout
 
 
 @pytest.fixture
+async def opened_violation_session(mcp_client: MCPClient, generated_violation_layout) -> str:
+    result = await mcp_client.call("open_layout", {"path": str(generated_violation_layout.path)})
+    return result["session_id"]
+
+
+@pytest.fixture
 async def opened_label_session(mcp_client: MCPClient, generated_label_layout) -> str:
     result = await mcp_client.call("open_layout", {"path": str(generated_label_layout.path)})
     return result["session_id"]
+
+
+@pytest.fixture
+def drc_script(tmp_path: Path) -> Path:
+    if not KLAYOUT_BIN.exists():
+        pytest.skip("KLayout batch binary is not available")
+
+    source = ROOT / "tests" / "fixtures" / "drc" / "min_space.drc"
+    target = tmp_path / "min_space.drc"
+    shutil.copyfile(source, target)
+    return target
+
+
+@pytest.fixture
+async def completed_drc_run(
+    mcp_client: MCPClient,
+    opened_violation_session: str,
+    drc_script: Path,
+) -> dict[str, object]:
+    return await mcp_client.call(
+        "run_drc_script",
+        {
+            "session_id": opened_violation_session,
+            "script_path": str(drc_script),
+            "script_type": "ruby",
+        },
+    )
 
 
 @pytest.fixture

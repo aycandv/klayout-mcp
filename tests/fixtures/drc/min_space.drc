@@ -1,0 +1,12 @@
+input_path = $input_path
+report_path = $report_path
+min_space = (($WG_MIN_SPACE || "1.0").to_f).um
+
+raise "missing input_path" unless input_path && !input_path.empty?
+raise "missing report_path" unless report_path && !report_path.empty?
+
+source(input_path)
+wg = input(1, 0)
+violations = wg.space(min_space)
+report("test_drc", report_path)
+violations.output("wg_min_space", "Waveguide min spacing")
