@@ -18,6 +18,7 @@ if str(SRC) not in sys.path:
 
 from klayout_mcp.server import build_server
 from tests.fixtures.layout_factory import (
+    build_dense_fixture,
     build_hierarchical_fixture,
     build_label_fixture,
     build_waveguide_fixture,
@@ -47,6 +48,11 @@ def generated_layout(tmp_path: Path):
 
 
 @pytest.fixture
+def generated_dense_layout(tmp_path: Path):
+    return build_dense_fixture(tmp_path)
+
+
+@pytest.fixture
 def generated_hierarchical_layout(tmp_path: Path):
     return build_hierarchical_fixture(tmp_path)
 
@@ -59,6 +65,18 @@ def generated_label_layout(tmp_path: Path):
 @pytest.fixture
 async def opened_hierarchical_session(mcp_client: MCPClient, generated_hierarchical_layout) -> str:
     result = await mcp_client.call("open_layout", {"path": str(generated_hierarchical_layout.path)})
+    return result["session_id"]
+
+
+@pytest.fixture
+async def opened_session(mcp_client: MCPClient, generated_layout) -> str:
+    result = await mcp_client.call("open_layout", {"path": str(generated_layout.path)})
+    return result["session_id"]
+
+
+@pytest.fixture
+async def opened_dense_session(mcp_client: MCPClient, generated_dense_layout) -> str:
+    result = await mcp_client.call("open_layout", {"path": str(generated_dense_layout.path)})
     return result["session_id"]
 
 

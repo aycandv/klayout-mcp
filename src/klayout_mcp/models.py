@@ -19,12 +19,60 @@ class MicronBox:
     right: float
     top: float
 
+    def to_dict(self) -> dict[str, float]:
+        return {
+            "left": self.left,
+            "bottom": self.bottom,
+            "right": self.right,
+            "top": self.top,
+        }
+
 
 @dataclass(slots=True, frozen=True)
 class LayerRef:
     layer: int
     datatype: int
     name: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "layer": self.layer,
+            "datatype": self.datatype,
+        }
+        if self.name:
+            result["name"] = self.name
+        return result
+
+
+@dataclass(slots=True, frozen=True)
+class ShapeRecord:
+    id: str
+    kind: str
+    cell: str
+    leaf_cell: str
+    instance_path: tuple[str, ...]
+    layer: LayerRef
+    bbox_um: MicronBox
+    bbox_dbu: tuple[int, int, int, int]
+    point_count: int | None = None
+    path_width_um: float | None = None
+    path_width_dbu: int | None = None
+    points_dbu: tuple[tuple[int, int], ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "id": self.id,
+            "kind": self.kind,
+            "cell": self.cell,
+            "instance_path": list(self.instance_path),
+            "layer": self.layer.to_dict(),
+            "bbox_um": self.bbox_um.to_dict(),
+        }
+        if self.point_count is not None:
+            result["point_count"] = self.point_count
+        if self.path_width_um is not None:
+            result["path_width_um"] = self.path_width_um
+        return result
 
 
 @dataclass(slots=True)

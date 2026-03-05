@@ -81,11 +81,22 @@ def build_label_fixture(root: Path) -> GeneratedLayoutFixture:
     return _write_fixture(root, "labels", layout, top, (WG_LAYER, PIN_LAYER, TEXT_LAYER))
 
 
+def build_dense_fixture(root: Path) -> GeneratedLayoutFixture:
+    layout = _new_layout()
+    top = layout.create_cell("TOP")
+    wg = layout.layer(*WG_LAYER)
+    for index in range(8):
+        left = float(index * 2)
+        top.shapes(wg).insert(kdb.DBox(left, 0.0, left + 1.0, 1.0))
+    return _write_fixture(root, "dense", layout, top, (WG_LAYER,))
+
+
 def build_all_fixtures(root: Path) -> dict[str, GeneratedLayoutFixture]:
     return {
         "waveguide": build_waveguide_fixture(root),
         "bend": build_bend_fixture(root),
         "directional_coupler": build_directional_coupler_fixture(root),
+        "dense": build_dense_fixture(root),
         "hierarchical": build_hierarchical_fixture(root),
         "labels": build_label_fixture(root),
     }
