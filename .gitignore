@@ -6,5 +6,6 @@ __pycache__/
 AGENTS.md
 build/
 dist/
+site/
 *.egg-info/
 uv.lock

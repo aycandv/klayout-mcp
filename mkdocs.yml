@@ -1,0 +1,29 @@
+site_name: klayout-mcp
+site_description: Observer-first MCP server for KLayout layout inspection.
+repo_url: https://github.com/aycandv/klayout-mcp
+repo_name: aycandv/klayout-mcp
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+strict: true
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - MCP Clients: clients.md
+  - Reference: reference.md
+  - Development: development.md
+  - Contract: specs/2026-03-05-klayout-observer-mcp-contract.md
+  - Design Plan: plans/2026-03-05-klayout-observer-mcp-design.md
+  - Implementation Plan: plans/2026-03-05-klayout-observer-mcp-implementation-plan.md
+  - PyPI Install Plan: plans/2026-03-06-pypi-install-plan.md

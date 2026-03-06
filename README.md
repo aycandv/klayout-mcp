@@ -221,3 +221,21 @@ The manual [release.yml](/Users/avit/individual/klayout-mcp/.github/workflows/re
 - [docs/specs/2026-03-05-klayout-observer-mcp-contract.md](docs/specs/2026-03-05-klayout-observer-mcp-contract.md)
 - [docs/plans/2026-03-05-klayout-observer-mcp-design.md](docs/plans/2026-03-05-klayout-observer-mcp-design.md)
 - [docs/plans/2026-03-05-klayout-observer-mcp-implementation-plan.md](docs/plans/2026-03-05-klayout-observer-mcp-implementation-plan.md)
+
+## Documentation Site
+
+The repository is configured for Read the Docs with MkDocs.
+
+Build the docs locally:
+
+```bash
+uv run --extra docs mkdocs build --strict
+```
+
+Serve the docs locally:
+
+```bash
+uv run --extra docs mkdocs serve
+```
+
+After importing the GitHub repository into Read the Docs, it can build directly from the default branch using `.readthedocs.yaml`.
