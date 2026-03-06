@@ -55,8 +55,6 @@ class MCPClient:
 @pytest.fixture
 def mcp_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> MCPClient:
     monkeypatch.setenv("KLAYOUT_MCP_ARTIFACT_ROOT", str(tmp_path / ".artifacts"))
-    monkeypatch.setenv("KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS", str(tmp_path))
-    monkeypatch.setenv("KLAYOUT_MCP_ALLOWED_DRC_ROOTS", str(tmp_path))
     if KLAYOUT_BIN.exists():
         monkeypatch.setenv("KLAYOUT_BIN", str(KLAYOUT_BIN))
     return MCPClient()

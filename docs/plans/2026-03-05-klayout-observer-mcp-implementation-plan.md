@@ -117,15 +117,12 @@ Expected: FAIL because settings and session store are not implemented.
 @dataclass(slots=True)
 class Settings:
     artifact_root: Path
-    allowed_layout_roots: tuple[Path, ...]
-    allowed_drc_roots: tuple[Path, ...]
     session_ttl_seconds: int
     klayout_bin: str
 ```
 
 Implement:
 - env parsing
-- allowlist checks
 - artifact directory creation
 - lazy TTL cleanup
 - explicit close semantics
@@ -228,7 +225,6 @@ Expected: FAIL because these tools do not exist yet.
 
 `layout_loader.py` should:
 - validate absolute path
-- validate allowed roots
 - infer format
 - load layout through `klayout.db.Layout`
 - compute top cells, dbu, bbox, and layer list
@@ -555,7 +551,7 @@ Expected: FAIL because batch DRC integration and marker parsing do not exist.
 **Step 3: Implement DRC integration**
 
 Support:
-- script allowlist validation
+- script path validation
 - temp export of session layout into run directory
 - batch invocation through `klayout -b -r`
 - marker artifact discovery
@@ -608,7 +604,7 @@ def test_all_contract_tool_names_exist(mcp_client):
 
 def test_invalid_path_returns_contract_error_code(mcp_client):
     result = mcp_client.call_expect_error("open_layout", {"path": "/tmp/missing.gds"})
-    assert result["code"] in {"FILE_NOT_FOUND", "PATH_NOT_ALLOWED"}
+    assert result["code"] == "FILE_NOT_FOUND"
 ```
 
 **Step 2: Run tests to verify they fail**

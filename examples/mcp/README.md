@@ -23,8 +23,6 @@ If your client does not inherit a reliable `PATH`, replace `uvx` with its absolu
 
 Edit these placeholders before using the files:
 
-- `/ABS/PATH/TO/layouts`
-- `/ABS/PATH/TO/drc-decks`
 - `KLAYOUT_BIN` if `klayout` is not already on `PATH`
 
 For a source checkout before the first PyPI release, replace the launch command with:

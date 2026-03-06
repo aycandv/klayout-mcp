@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.anyio
 async def test_invalid_path_returns_contract_error_code(mcp_client):
     result = await mcp_client.call_expect_error("open_layout", {"path": "/tmp/missing.gds"})
-    assert result["code"] in {"FILE_NOT_FOUND", "PATH_NOT_ALLOWED"}
+    assert result["code"] == "FILE_NOT_FOUND"
     assert isinstance(result["details"], dict)
 
 
@@ -24,4 +24,4 @@ async def test_disallowed_drc_script_returns_contract_error_code(mcp_client, ope
             "script_type": "ruby",
         },
     )
-    assert result["code"] in {"DRC_SCRIPT_NOT_ALLOWED", "FILE_NOT_FOUND"}
+    assert result["code"] == "FILE_NOT_FOUND"

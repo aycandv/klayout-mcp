@@ -101,5 +101,4 @@ Release flow:
 
 - Keep MCP tool names and error codes aligned with the contract in [2026-03-05-klayout-observer-mcp-contract.md](docs/specs/2026-03-05-klayout-observer-mcp-contract.md)
 - Keep responses machine-readable and deterministic
-- Reject layout and DRC paths outside the configured allowlists
 - Do not add GUI editing behavior unless explicitly requested

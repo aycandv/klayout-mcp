@@ -23,16 +23,10 @@ Support these environment variables:
 
 - `KLAYOUT_MCP_ARTIFACT_ROOT`
   - Default: `<repo>/.artifacts`
-- `KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS`
-  - Colon-separated list of readable roots for input GDS or OASIS files
-- `KLAYOUT_MCP_ALLOWED_DRC_ROOTS`
-  - Colon-separated list of readable roots for DRC scripts
 - `KLAYOUT_MCP_SESSION_TTL_SECONDS`
   - Default: `3600`
 - `KLAYOUT_BIN`
   - Default: `klayout`
-
-Reject input paths outside the configured allowlists.
 
 ## Runtime Artifact Layout
 
@@ -160,7 +154,6 @@ When a tool call fails, return this object directly as the structured tool resul
 Use these exact codes:
 
 - `FILE_NOT_FOUND`
-- `PATH_NOT_ALLOWED`
 - `UNSUPPORTED_FORMAT`
 - `TOP_CELL_NOT_FOUND`
 - `SESSION_NOT_FOUND`
@@ -171,7 +164,6 @@ Use these exact codes:
 - `QUERY_TOO_LARGE`
 - `TOOL_LIMIT_EXCEEDED`
 - `RENDER_FAILED`
-- `DRC_SCRIPT_NOT_ALLOWED`
 - `DRC_RUN_FAILED`
 - `INTERNAL_ERROR`
 
@@ -599,7 +591,7 @@ Request:
 
 Rules:
 
-- `script_path` must be absolute and allowed by `KLAYOUT_MCP_ALLOWED_DRC_ROOTS`.
+- `script_path` must be absolute.
 - The server must invoke KLayout in batch mode.
 - The implementation must export a copy of the session layout into the session DRC run directory and run the deck against that copy.
 - The DRC run must produce a `.lyrdb` or another machine-readable marker artifact.
@@ -675,9 +667,7 @@ If `include_crops` is `false`, omit `crop`.
 
 - Never execute arbitrary shell from tool input.
 - Never pass unvalidated paths to `subprocess` calls.
-- Only allow layout files and DRC scripts from configured roots.
 - Treat script parameters as data, not as shell fragments.
-- Refuse to open symlink targets outside the allowlist roots.
 
 ## Determinism Rules
 
