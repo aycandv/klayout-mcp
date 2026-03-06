@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
+## [0.2.0](https://github.com/aycandv/klayout-mcp/compare/v0.1.6...v0.2.0) (2026-03-06)
+
+
+### Features
+
+* add waveguide analysis tool ([1f9fc81](https://github.com/aycandv/klayout-mcp/commit/1f9fc81e1df603c9d94a17f422915ae2b9cbb823))
+* add waveguide analysis tool ([480da58](https://github.com/aycandv/klayout-mcp/commit/480da58414695f1cace85f05a005e29fb6bfcc45))
+
+
+### Bug Fixes
+
+* classify Manhattan bends as axis aligned ([f5f4d3c](https://github.com/aycandv/klayout-mcp/commit/f5f4d3c816bab5cd448a30d6aec63fa3fd6a7d3b))
+
 ## [0.1.6](https://github.com/aycandv/klayout-mcp/compare/v0.1.5...v0.1.6) (2026-03-06)
 
 
