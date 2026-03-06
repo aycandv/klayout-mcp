@@ -21,6 +21,8 @@ def test_ci_workflow_runs_lint_tests_and_build_on_push_and_pr():
 def test_release_workflow_uses_separate_build_and_trusted_publish_jobs():
     text = _workflow_text("release.yml")
     assert "workflow_dispatch:" in text
+    assert "release:" in text
+    assert "published" in text
     assert "uv sync --extra dev" in text
     assert "actions/upload-artifact" in text
     assert "actions/download-artifact" in text
@@ -36,13 +38,8 @@ def test_release_please_workflow_creates_release_prs_and_publishes_to_pypi():
     assert "main" in text
     assert "googleapis/release-please-action@v4" in text
     assert "RELEASE_PLEASE_TOKEN" in text
-    assert "release_created" in text
-    assert "environment:" in text
-    assert "name: pypi" in text
-    assert "id-token: write" in text
-    assert "uv build" in text
-    assert "uvx twine check dist/*" in text
-    assert "pypa/gh-action-pypi-publish@release/v1" in text
+    assert "release_created" not in text
+    assert "pypa/gh-action-pypi-publish@release/v1" not in text
 
 
 def test_release_please_config_matches_current_python_package_version():
