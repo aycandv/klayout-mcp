@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
+## [0.1.6](https://github.com/aycandv/klayout-mcp/compare/v0.1.5...v0.1.6) (2026-03-06)
+
+
+### Documentation
+
+* add status badges ([fb39ff9](https://github.com/aycandv/klayout-mcp/commit/fb39ff9eb6487bb110ef76ea5a1bcf6fa643ef85))
+
 ## [0.1.5](https://github.com/aycandv/klayout-mcp/compare/v0.1.4...v0.1.5) (2026-03-06)
 
 
