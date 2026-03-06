@@ -448,6 +448,8 @@ Run lint:
 ./.venv/bin/python -m ruff check .
 ```
 
+Contributor workflow and release expectations are documented in [CONTRIBUTING.md](/Users/avit/individual/klayout-mcp/CONTRIBUTING.md).
+
 ## CI And Releases
 
 Baseline GitHub Actions workflows are included:
