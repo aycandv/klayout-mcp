@@ -32,6 +32,7 @@ def test_github_release_workflow_creates_release_from_version_tags():
     assert "push:" in text
     assert '      - "v*"' in text
     assert "contents: write" in text
+    assert "actions/checkout" in text
     assert 'gh release create "$GITHUB_REF_NAME"' in text
     assert "--verify-tag" in text
     assert "--generate-notes" in text
