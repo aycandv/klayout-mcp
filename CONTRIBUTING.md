@@ -85,12 +85,12 @@ PRs should include:
 
 ## Releases
 
-Human-readable release notes live in [CHANGELOG.md](/Users/avit/individual/klayout-mcp/CHANGELOG.md).
+Human-readable release notes live in [CHANGELOG.md](CHANGELOG.md).
 
 Release flow:
 
-1. Update `version` in [pyproject.toml](/Users/avit/individual/klayout-mcp/pyproject.toml)
-2. Move `Unreleased` notes into a new version section in [CHANGELOG.md](/Users/avit/individual/klayout-mcp/CHANGELOG.md)
+1. Update `version` in [pyproject.toml](pyproject.toml)
+2. Move `Unreleased` notes into a new version section in [CHANGELOG.md](CHANGELOG.md)
 3. Merge the release changes to `main`
 4. Run the `Release` workflow for `testpypi`
 5. Verify the package from TestPyPI
@@ -99,7 +99,7 @@ Release flow:
 
 ## Project-Specific Notes
 
-- Keep MCP tool names and error codes aligned with the contract in [2026-03-05-klayout-observer-mcp-contract.md](/Users/avit/individual/klayout-mcp/docs/specs/2026-03-05-klayout-observer-mcp-contract.md)
+- Keep MCP tool names and error codes aligned with the contract in [2026-03-05-klayout-observer-mcp-contract.md](docs/specs/2026-03-05-klayout-observer-mcp-contract.md)
 - Keep responses machine-readable and deterministic
 - Reject layout and DRC paths outside the configured allowlists
 - Do not add GUI editing behavior unless explicitly requested

@@ -1,84 +1,39 @@
 # klayout-mcp
 
-MCP server for read-only KLayout inspection: open layouts, inspect hierarchy and geometry, render deterministic views, and run batch DRC decks with structured JSON results.
+Read-only MCP server for KLayout. It opens GDS/OAS layouts, inspects hierarchy and geometry, renders deterministic PNG views, and runs batch DRC with structured JSON results.
 
-## Features
+## Install In 60 Seconds
 
-- Open `gds`, `gdsii`, `oas`, and `oasis` layout files
-- List layers and cell hierarchy
-- Query shapes and instances inside a bounding box
-- Measure widths, gaps, lengths, overlap, and related geometry
-- Render deterministic PNG views
-- Run KLayout batch DRC scripts
-- Extract DRC markers and optional crop images
-- Return structured errors with stable error codes
-- Enforce allowlisted roots for layout and DRC inputs
-
-## Status
-
-The server is functional over MCP `stdio`.
-
-Current verification:
-
-- automated suite: `23 passed`
-- live MCP stdio smoke test completed successfully
-- exercised against generated fixtures and a real GDS layout
-
-Tested end-to-end flow:
-
-1. `open_layout`
-2. `list_layers`
-3. `query_region`
-4. `measure_geometry`
-5. `render_view`
-6. `run_drc_script`
-7. `extract_markers`
-8. `close_session`
-
-## Requirements
-
-- Python 3.11+
-- `uv` recommended for environment management
-- KLayout installed locally
-
-The server uses KLayout's Python bindings for layout inspection and the `klayout` executable for batch DRC. If the executable is not on `PATH`, set `KLAYOUT_BIN`.
-
-On macOS app installs, this is commonly:
-
-```bash
-export KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout
-```
-
-## Install
-
-### Published Package
-
-After `klayout-mcp` is published to PyPI, the simplest ways to run it will be:
+Fastest one-off run:
 
 ```bash
 uvx klayout-mcp
 ```
 
-Or install it once and run the command directly:
+Install once and keep the command on your machine:
 
 ```bash
 uv tool install klayout-mcp
 klayout-mcp
 ```
 
-For MCP client configuration, this README uses `uvx` because that is the most common Python MCP pattern.
-
-### Source Checkout
-
-For unreleased builds or local development:
+Traditional Python install:
 
 ```bash
-uv sync --extra dev
+python -m pip install klayout-mcp
+```
+
+`klayout-mcp` depends on the `klayout` Python package. For batch DRC, you also need the `klayout` executable on `PATH` or `KLAYOUT_BIN` set explicitly.
+
+Common macOS app path:
+
+```bash
+export KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout
 ```
 
 ## Quick Start
 
-Choose narrow allowlists for the layouts and DRC decks you want the server to access:
+Set narrow allowlists for the layouts and DRC decks the server may access:
 
 ```bash
 export KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS=/abs/path/to/layouts
@@ -86,103 +41,22 @@ export KLAYOUT_MCP_ALLOWED_DRC_ROOTS=/abs/path/to/drc-decks
 export KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout
 ```
 
-Start the server locally from a source checkout:
-
-```bash
-uv run klayout-mcp
-```
-
-The server speaks MCP over `stdio`.
-
-## Using uv
-
-For Python MCP servers, the common `uv` patterns are:
-
-- `uvx <tool>` for published servers without a permanent install
-- `uv tool install <tool>` when you want the command on your machine
-- `uv --directory /path/to/repo run <tool>` for source checkouts
-
-The recommended client configuration after PyPI release is:
+The server speaks MCP over `stdio`. The most common launcher is:
 
 ```text
 command: uvx
 args:    klayout-mcp
 ```
 
-That matches how many published Python MCP servers are configured in practice.
+If your host cannot use `uvx`, install once with `uv tool install klayout-mcp` and point the client at the installed `klayout-mcp` binary instead.
 
-If your MCP host launches tools with a minimal `PATH`, replace `uvx` with its absolute path.
+## Choose Your Client
 
-For a local source checkout, use:
-
-```text
-command: uv
-args:    --directory /abs/path/to/klayout-mcp run klayout-mcp
-```
-
-## Commit Conventions
-
-This repo uses Conventional Commits and checks them in two places:
-
-- locally with `pre-commit` on the `commit-msg` hook
-- in GitHub Actions on every push and pull request
-
-Install the local hook once in a source checkout:
-
-```bash
-uv sync --extra dev
-uv run pre-commit install --hook-type commit-msg --install-hooks
-```
-
-Allowed commit types:
-
-- `build`
-- `chore`
-- `ci`
-- `docs`
-- `feat`
-- `fix`
-- `perf`
-- `refactor`
-- `revert`
-- `style`
-- `test`
-
-## Client Setup
-
-All clients below assume the package is published and launched with `uvx`:
-
-```text
-command: uvx
-args:    klayout-mcp
-```
-
-Recommended environment variables:
-
-- `KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS=/abs/path/to/layouts`
-- `KLAYOUT_MCP_ALLOWED_DRC_ROOTS=/abs/path/to/drc-decks`
-- `KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout`
-
-If `klayout` is already on `PATH`, `KLAYOUT_BIN` is optional.
-
-Ready-to-copy templates are in:
-
-- `examples/mcp/codex.config.toml`
-- `examples/mcp/claude-code.mcp.json`
-- `examples/mcp/cursor.mcp.json`
-- `examples/mcp/opencode.json`
-- `examples/mcp/README.md`
-
-For a source checkout before the first PyPI release, replace the launcher with:
-
-```text
-command: uv
-args:    --directory /abs/path/to/klayout-mcp run klayout-mcp
-```
+Ready-to-copy config files live in [examples/mcp/README.md](examples/mcp/README.md).
 
 ### Codex
 
-Codex reads MCP servers from `~/.codex/config.toml` or project-scoped `.codex/config.toml`.
+Codex supports user-scoped `~/.codex/config.toml` and project-scoped `.codex/config.toml`.
 
 ```toml
 [mcp_servers.klayout]
@@ -195,13 +69,19 @@ KLAYOUT_MCP_ALLOWED_DRC_ROOTS = "/abs/path/to/drc-decks"
 KLAYOUT_BIN = "/Applications/klayout.app/Contents/MacOS/klayout"
 ```
 
-If you prefer the CLI, Codex also supports `codex mcp add`.
+Codex CLI also supports adding stdio servers directly:
+
+```bash
+codex mcp add klayout \
+  --env KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS=/abs/path/to/layouts \
+  --env KLAYOUT_MCP_ALLOWED_DRC_ROOTS=/abs/path/to/drc-decks \
+  --env KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout \
+  -- uvx klayout-mcp
+```
 
 ### Claude Code
 
-Claude Code supports project-scoped `.mcp.json` files and user-scoped MCP configuration. For team use, project scope is the clearest option.
-
-Create `.mcp.json` at the repo root:
+Claude Code supports project-scoped `.mcp.json` and user-scoped MCP configuration.
 
 ```json
 {
@@ -219,7 +99,7 @@ Create `.mcp.json` at the repo root:
 }
 ```
 
-You can also add it from the CLI:
+CLI form:
 
 ```bash
 claude mcp add klayout --scope project \
@@ -232,8 +112,6 @@ claude mcp add klayout --scope project \
 ### Cursor
 
 Cursor reads MCP servers from `.cursor/mcp.json` for a project or `~/.cursor/mcp.json` globally.
-
-Create `.cursor/mcp.json`:
 
 ```json
 {
@@ -261,10 +139,7 @@ OpenCode reads MCP servers from `opencode.json` under the `mcp` key.
   "mcp": {
     "klayout": {
       "type": "local",
-      "command": [
-        "uvx",
-        "klayout-mcp"
-      ],
+      "command": ["uvx", "klayout-mcp"],
       "enabled": true,
       "environment": {
         "KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS": "/abs/path/to/layouts",
@@ -276,77 +151,55 @@ OpenCode reads MCP servers from `opencode.json` under the `mcp` key.
 }
 ```
 
-### Other MCP Clients And Agents
+### Other MCP Hosts And Agents
 
-If your host asks for a local stdio server, use:
+Use this stdio shape:
 
-- command: `uvx`
-- args: `["klayout-mcp"]`
-- env: the three `KLAYOUT_*` variables above
+- `command`: `uvx`
+- `args`: `["klayout-mcp"]`
+- `env`: `KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS`, `KLAYOUT_MCP_ALLOWED_DRC_ROOTS`, `KLAYOUT_BIN`
 
-For an unreleased source checkout, use:
+This server works well with agents because it is read-only with respect to layout content, but it still writes artifacts for renders, reports, and marker crops.
 
-- command: `uv`
-- args: `["--directory", "/abs/path/to/klayout-mcp", "run", "klayout-mcp"]`
-- env: the same `KLAYOUT_*` variables
+## Typical Workflow
 
-This server is a good fit for agentic hosts because it is deterministic and read-only with respect to layout content, but it still writes render and DRC artifacts under the artifact root.
-
-## Using With Agents
-
-This server works with agentic clients, but you should keep the tool surface narrow.
-
-- Point `KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS` at a small layout directory.
-- Point `KLAYOUT_MCP_ALLOWED_DRC_ROOTS` at a small deck directory.
-- Give write access to the artifact root because renders, reports, and marker crops are written there.
-- Prefer project-scoped MCP config when you want team members or project-specific agents to share the same server setup.
-
-Client-specific notes:
-
-- Codex: if you use Codex multi-agent workflows, enable `features.multi_agent` in the same `config.toml` layer that declares the MCP server.
-- Cursor: Cursor's Composer Agent can use enabled MCP tools directly from `Available Tools`.
-- OpenCode: enabled MCP tools are available to the LLM and can be restricted per agent with `agent.<name>.tools`.
+1. `open_layout`
+2. `list_layers`
+3. `list_cells` or `describe_cell`
+4. `query_region`
+5. `measure_geometry`
+6. `render_view`
+7. `run_drc_script`
+8. `extract_markers`
+9. `close_session`
 
 ## Available Tools
 
 ### Session
 
-- `open_layout`: open a layout and create a session
-- `close_session`: close a session and delete its artifacts
+- `open_layout`
+- `close_session`
 
 ### Structure
 
-- `list_layers`: list layout layers in deterministic order
-- `list_cells`: list cell hierarchy
-- `describe_cell`: summarize one cell and its immediate structure
+- `list_layers`
+- `list_cells`
+- `describe_cell`
 
 ### Geometry
 
-- `query_region`: return shapes, texts, and instances overlapping a box
-- `measure_geometry`: measure geometry from shape ids returned by `query_region`
+- `query_region`
+- `measure_geometry`
 
 ### View
 
-- `set_view`: set the session view state
-- `render_view`: render the current or requested view to PNG
+- `set_view`
+- `render_view`
 
 ### DRC
 
-- `run_drc_script`: run a KLayout batch DRC script against the session layout
-- `extract_markers`: return marker summaries and optional crop images
-
-## Typical Workflow
-
-For most users, the normal sequence is:
-
-1. Open a layout with `open_layout`
-2. Inspect its structure with `list_layers`, `list_cells`, or `describe_cell`
-3. Focus on a region with `query_region`
-4. Measure geometry from returned shape ids with `measure_geometry`
-5. Render a view with `render_view`
-6. Run a deck with `run_drc_script`
-7. Inspect markers with `extract_markers`
-8. Clean up with `close_session`
+- `run_drc_script`
+- `extract_markers`
 
 ## Configuration
 
@@ -390,7 +243,7 @@ Typical outputs include:
 
 ## Error Model
 
-Tool failures return structured JSON objects instead of free-form text:
+Tool failures return structured JSON objects:
 
 ```json
 {
@@ -416,9 +269,9 @@ Common codes include:
 ## Security Notes
 
 - This server is read-only with respect to layout content
-- Input paths are restricted to configured allowlists
+- input paths are restricted to configured allowlists
 - DRC execution is limited to scripts under `KLAYOUT_MCP_ALLOWED_DRC_ROOTS`
-- Tool parameters are treated as data, not shell fragments
+- tool parameters are treated as data, not shell fragments
 
 Recommended practice:
 
@@ -426,75 +279,43 @@ Recommended practice:
 - point `KLAYOUT_MCP_ALLOWED_DRC_ROOTS` to a small deck directory
 - avoid using broad roots like your home directory
 
-## Current Limits
+## Source Checkout
 
-- tested transport is `stdio`
-- no GUI attach mode
-- no geometry editing
-- no PCell authoring
-- DRC usefulness depends on the deck matching the layout technology
-
-## Development
-
-Run tests:
+For local development or unreleased builds:
 
 ```bash
-./.venv/bin/python -m pytest -q
+uv sync --extra dev
+uv run klayout-mcp
 ```
 
-Run lint:
+If an MCP client needs to launch a source checkout directly:
 
-```bash
-./.venv/bin/python -m ruff check .
+```text
+command: uv
+args:    --directory /abs/path/to/klayout-mcp run klayout-mcp
 ```
 
-Contributor workflow and release expectations are documented in [CONTRIBUTING.md](/Users/avit/individual/klayout-mcp/CONTRIBUTING.md).
+Contributor workflow, branch policy, and release expectations are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## CI And Releases
 
-Baseline GitHub Actions workflows are included:
+GitHub Actions workflows included in this repo:
 
-- `.github/workflows/ci.yml`: runs `ruff`, `pytest`, `uv build`, and `twine check` on pushes to `main` and on pull requests
-- `.github/workflows/release.yml`: manual publish workflow for `testpypi` or `pypi`
-- `.github/workflows/github-release.yml`: creates a GitHub Release with generated notes when a `v*` tag is pushed
+- `.github/workflows/ci.yml`
+- `.github/workflows/release.yml`
+- `.github/workflows/github-release.yml`
 
-Release information is split in two places:
+Human-readable release notes live in [CHANGELOG.md](CHANGELOG.md).
 
-- `CHANGELOG.md` is the human-maintained summary of user-visible changes
-- GitHub Releases are the tag-level release objects with generated notes
+Release flow:
 
-The release workflow follows the recommended Trusted Publishing shape:
-
-- build distributions in one job
-- upload them as artifacts
-- publish from a separate job with `id-token: write`
-
-Before the first release, configure GitHub and PyPI/TestPyPI:
-
-1. Create GitHub environments named `testpypi` and `pypi`.
-2. In TestPyPI and PyPI, add a Trusted Publisher for this repository.
-3. Use workflow filename `.github/workflows/release.yml`.
-4. Set the environment name to match the target index, `testpypi` or `pypi`.
-
-Suggested release flow:
-
-1. Update `version` in `pyproject.toml`.
-2. Move the `Unreleased` notes into a new version section in `CHANGELOG.md`.
-3. Merge to `main`.
-4. Run the `Release` workflow against `testpypi`.
-5. Verify the published package from TestPyPI.
-6. Run the `Release` workflow against `pypi`.
-7. Push a matching git tag, for example `v0.1.0`.
-8. Let the `GitHub Release` workflow create the GitHub Release and generated release notes.
-
-Example tag push:
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-Version bumps are still manual on purpose. That keeps the first release cycle simple while the project is stabilizing.
+1. Update `version` in `pyproject.toml`
+2. Move `Unreleased` notes into a new version section in `CHANGELOG.md`
+3. Merge to `main`
+4. Run the `Release` workflow for `testpypi`
+5. Verify the package from TestPyPI
+6. Run the `Release` workflow for `pypi`
+7. Push the matching tag, for example `v0.1.0`
 
 ## Reference Docs
 
