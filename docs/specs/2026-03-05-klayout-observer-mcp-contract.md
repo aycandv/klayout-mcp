@@ -47,6 +47,7 @@ Store runtime artifacts under:
         <render_id>.png
       drc/
         <run_id>/
+          layout.gds|oas
           stdout.txt
           stderr.txt
           report.lyrdb
@@ -69,6 +70,7 @@ All paths returned to callers must be absolute paths.
 ## Global Response Rules
 
 - Tool responses must be structured JSON objects, not free-form prose.
+- Tool failures must return the shared `ErrorObject` payload with the exact contract `code`.
 - Coordinates provided by callers are in microns unless a field explicitly says otherwise.
 - Output must include:
   - `dbu`
@@ -151,6 +153,8 @@ All paths returned to callers must be absolute paths.
 }
 ```
 
+When a tool call fails, return this object directly as the structured tool result.
+
 ## Error Codes
 
 Use these exact codes:
@@ -221,6 +225,8 @@ Response:
   "artifact_root": "/abs/path/to/.artifacts/sessions/ses_a1b2c3d4e5f6"
 }
 ```
+
+Implementations may include additional debug artifacts in `artifacts` such as `markers.json`, `stdout.txt`, and `stderr.txt`. The `drc_report` artifact must always be present when the run succeeds.
 
 ### `close_session`
 

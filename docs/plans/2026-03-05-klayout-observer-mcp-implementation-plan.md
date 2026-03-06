@@ -578,6 +578,8 @@ git commit -m "feat: add batch drc execution and marker extraction"
 
 ### Task 10: Add integration coverage and polish
 
+**Status:** Completed
+
 **Files:**
 - Create: `tests/test_contract_smoke.py`
 - Create: `tests/test_error_paths.py`

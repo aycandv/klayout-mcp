@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from mcp.server.fastmcp.exceptions import ToolError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,9 +34,22 @@ class MCPClient:
     def __init__(self) -> None:
         self._server = build_server()
 
+    async def list_tool_names(self) -> set[str]:
+        return {tool.name for tool in await self._server.list_tools()}
+
     async def call(self, name: str, arguments: dict[str, object]) -> dict[str, object]:
         _, structured = await self._server.call_tool(name, arguments)
         return structured
+
+    async def call_expect_error(self, name: str, arguments: dict[str, object]) -> dict[str, object]:
+        try:
+            result = await self.call(name, arguments)
+        except ToolError as exc:
+            return {"code": None, "message": str(exc), "details": {}}
+
+        if not isinstance(result, dict) or "code" not in result or "message" not in result:
+            pytest.fail(f"Expected structured error result from {name}, got {result!r}")
+        return result
 
 
 @pytest.fixture

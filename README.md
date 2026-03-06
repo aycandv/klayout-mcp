@@ -9,9 +9,11 @@ This repository has moved past handoff-only documentation. The current codebase 
 - MCP server bootstrap with the fixed MVP tool names
 - runtime settings parsing and allowlist handling
 - in-memory session storage with artifact directories and TTL cleanup
-- generated KLayout test fixtures for waveguide, bend, coupler, hierarchy, and label cases
+- generated KLayout test fixtures for waveguide, bend, coupler, hierarchy, label, and DRC cases
+- all 11 MVP tools implemented, including batch DRC execution and marker crop rendering
+- structured contract errors returned as JSON objects with `code`, `message`, and `details`
 
-The actual layout tools are not implemented yet. The next planned milestone is Task 4 from the implementation plan: `open_layout`, `close_session`, and `list_layers`.
+The remaining planned work is Task 11 manual verification against a live MCP client.
 
 ## MVP Scope
 
@@ -28,9 +30,9 @@ Out of scope for the MVP:
 - PCell authoring
 - arbitrary shell execution
 
-## Planned Tool Surface
+## Implemented Tool Surface
 
-The contract fixes these tool names:
+The server exposes these contract-fixed tools:
 
 - `open_layout`
 - `close_session`
@@ -44,19 +46,19 @@ The contract fixes these tool names:
 - `run_drc_script`
 - `extract_markers`
 
-`build_server()` already registers those names in the MCP SDK. The handlers behind them are still placeholders.
-
 ## Repository Layout
 
 ```text
 src/klayout_mcp/
   __init__.py
+  bridge/
   config.py
   errors.py
   models.py
   server.py
   session_store.py
 tests/
+  fixtures/drc/min_space.drc
   fixtures/layout_factory.py
 docs/
   specs/2026-03-05-klayout-observer-mcp-contract.md
@@ -85,6 +87,18 @@ Run the current test suite:
 ./.venv/bin/python -m pytest -q
 ```
 
+Run the server over stdio:
+
+```bash
+./.venv/bin/python -m klayout_mcp.server
+```
+
+If KLayout is installed outside `PATH`, point `KLAYOUT_BIN` at the batch executable. On macOS app installs that is commonly:
+
+```bash
+export KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout
+```
+
 ## Runtime Configuration
 
 Supported environment variables:
@@ -101,6 +115,18 @@ Supported environment variables:
   Default: `klayout`
 
 Paths outside the configured allowlists must be rejected. Session and render artifacts are stored under `.artifacts/sessions/<session_id>/...`.
+
+Tool failures are returned as structured JSON objects:
+
+```json
+{
+  "code": "FILE_NOT_FOUND",
+  "message": "Layout file does not exist",
+  "details": {
+    "path": "/abs/path/to/missing.gds"
+  }
+}
+```
 
 ## Source of Truth
 
