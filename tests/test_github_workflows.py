@@ -25,3 +25,13 @@ def test_release_workflow_uses_separate_build_and_trusted_publish_jobs():
     assert "id-token: write" in text
     assert "environment:" in text
     assert "pypa/gh-action-pypi-publish@release/v1" in text
+
+
+def test_github_release_workflow_creates_release_from_version_tags():
+    text = _workflow_text("github-release.yml")
+    assert "push:" in text
+    assert '      - "v*"' in text
+    assert "contents: write" in text
+    assert 'gh release create "$GITHUB_REF_NAME"' in text
+    assert "--verify-tag" in text
+    assert "--generate-notes" in text

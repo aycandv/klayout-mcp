@@ -454,6 +454,12 @@ Baseline GitHub Actions workflows are included:
 
 - `.github/workflows/ci.yml`: runs `ruff`, `pytest`, `uv build`, and `twine check` on pushes to `main` and on pull requests
 - `.github/workflows/release.yml`: manual publish workflow for `testpypi` or `pypi`
+- `.github/workflows/github-release.yml`: creates a GitHub Release with generated notes when a `v*` tag is pushed
+
+Release information is split in two places:
+
+- `CHANGELOG.md` is the human-maintained summary of user-visible changes
+- GitHub Releases are the tag-level release objects with generated notes
 
 The release workflow follows the recommended Trusted Publishing shape:
 
@@ -471,12 +477,22 @@ Before the first release, configure GitHub and PyPI/TestPyPI:
 Suggested release flow:
 
 1. Update `version` in `pyproject.toml`.
-2. Merge to `main`.
-3. Run the `Release` workflow against `testpypi`.
-4. Verify the published package.
-5. Run the `Release` workflow against `pypi`.
+2. Move the `Unreleased` notes into a new version section in `CHANGELOG.md`.
+3. Merge to `main`.
+4. Run the `Release` workflow against `testpypi`.
+5. Verify the published package from TestPyPI.
+6. Run the `Release` workflow against `pypi`.
+7. Push a matching git tag, for example `v0.1.0`.
+8. Let the `GitHub Release` workflow create the GitHub Release and generated release notes.
 
-This baseline does not automate changelogs, tags, or semantic version bumps yet.
+Example tag push:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Version bumps are still manual on purpose. That keeps the first release cycle simple while the project is stabilizing.
 
 ## Reference Docs
 
