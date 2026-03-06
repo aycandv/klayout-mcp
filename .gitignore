@@ -3,3 +3,8 @@
 .ruff_cache/
 .venv/
 __pycache__/
+AGENTS.md
+build/
+dist/
+*.egg-info/
+uv.lock
