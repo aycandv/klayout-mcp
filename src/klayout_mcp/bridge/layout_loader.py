@@ -21,6 +21,8 @@ SUPPORTED_FORMATS = {
 
 @dataclass(slots=True, frozen=True)
 class LayerSummary:
+    """Serializable summary of one layout layer."""
+
     layer: int
     datatype: int
     name: str | None
@@ -28,6 +30,7 @@ class LayerSummary:
     shape_count: int
 
     def to_response(self) -> dict[str, object]:
+        """Return the layer summary in tool-response form."""
         response: dict[str, object] = {
             "layer": self.layer,
             "datatype": self.datatype,
@@ -41,6 +44,8 @@ class LayerSummary:
 
 @dataclass(slots=True)
 class LoadedLayout:
+    """Normalized result of loading a layout file for a new session."""
+
     layout: kdb.Layout
     resolved_path: Path
     layout_format: str
@@ -60,6 +65,20 @@ def load_layout(
     top_cell: str | None = None,
     layout_format: str | None = None,
 ) -> LoadedLayout:
+    """Load a layout from disk and collect session bootstrap metadata.
+
+    Args:
+        path: Absolute path to the layout file.
+        settings: Process runtime settings.
+        top_cell: Optional top cell override.
+        layout_format: Optional explicit format hint.
+
+    Returns:
+        LoadedLayout: Normalized layout data used to create a session.
+
+    Raises:
+        KLayoutMCPError: If the path, format, or top cell is invalid.
+    """
     requested_path = Path(path).expanduser()
     if not requested_path.is_absolute():
         raise KLayoutMCPError(
@@ -112,6 +131,7 @@ def load_layout(
 
 
 def _normalize_format(path: Path, layout_format: str | None) -> str:
+    """Normalize an explicit or inferred layout format to contract values."""
     if layout_format:
         key = layout_format.strip().lower()
     else:
@@ -128,6 +148,7 @@ def _normalize_format(path: Path, layout_format: str | None) -> str:
 
 
 def _hash_file(path: Path) -> str:
+    """Return the SHA-256 digest for a layout file."""
     digest = sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -136,6 +157,7 @@ def _hash_file(path: Path) -> str:
 
 
 def _collect_layers(layout: kdb.Layout) -> list[LayerSummary]:
+    """Collect sorted layer summaries across all cells in the layout."""
     summaries: list[LayerSummary] = []
     for layer_index in layout.layer_indices():
         info = layout.get_info(layer_index)
@@ -157,6 +179,7 @@ def _collect_layers(layout: kdb.Layout) -> list[LayerSummary]:
 
 
 def _micron_box(box: kdb.DBox) -> dict[str, float]:
+    """Convert a KLayout `DBox` into rounded micron coordinates."""
     return {
         "left": round(box.left, 6),
         "bottom": round(box.bottom, 6),
@@ -166,6 +189,7 @@ def _micron_box(box: kdb.DBox) -> dict[str, float]:
 
 
 def _dbu_box(box: kdb.Box) -> dict[str, int]:
+    """Convert a KLayout `Box` into integer database-unit coordinates."""
     return {
         "left": int(box.left),
         "bottom": int(box.bottom),

@@ -9,6 +9,8 @@ def test_precommit_config_installs_commit_msg_hook():
     assert "repo: https://github.com/compilerla/conventional-pre-commit" in text
     assert "id: conventional-pre-commit" in text
     assert "stages: [commit-msg]" in text
+    assert "id: commenting-standards" in text
+    assert "pytest tests/test_commenting_standards.py -q" in text
 
 
 def test_ci_workflow_validates_commit_messages():

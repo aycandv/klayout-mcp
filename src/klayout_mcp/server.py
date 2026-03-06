@@ -29,10 +29,12 @@ EXPECTED_TOOLS = [
 
 
 def _placeholder_tool() -> dict[str, str]:
+    """Return a placeholder payload for tools that are not implemented."""
     return {"status": "not_implemented"}
 
 
 def _error_response(error: KLayoutMCPError) -> dict[str, Any]:
+    """Convert an application error into the MCP wire payload."""
     return {
         "code": error.code,
         "message": error.message,
@@ -41,6 +43,7 @@ def _error_response(error: KLayoutMCPError) -> dict[str, Any]:
 
 
 def _wrap_tool(tool_name: str, tool_fn: Callable[..., dict[str, Any]]) -> Callable[..., dict[str, Any]]:
+    """Wrap a tool handler with contract error normalization."""
     @wraps(tool_fn)
     def wrapped(*args: Any, **kwargs: Any) -> dict[str, Any]:
         try:
@@ -61,7 +64,11 @@ def _wrap_tool(tool_name: str, tool_fn: Callable[..., dict[str, Any]]) -> Callab
 
 
 def build_server() -> FastMCP:
-    """Build the MCP server with the fixed MVP tool names."""
+    """Build the stdio MCP server instance.
+
+    Returns:
+        FastMCP: Configured server with the contract tool names registered.
+    """
     repo_root = Path(__file__).resolve().parents[2]
     settings = Settings.from_root(repo_root)
     session_store = SessionStore(settings.artifact_root, settings.session_ttl_seconds)
@@ -93,6 +100,7 @@ def build_server() -> FastMCP:
 
 
 def main() -> None:
+    """Run the MCP server over stdio."""
     build_server().run(transport="stdio")
 
 

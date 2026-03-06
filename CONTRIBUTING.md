@@ -83,6 +83,16 @@ PRs should include:
 - verification notes
 - any follow-up work or limitations
 
+## Code Comments
+
+Use comments sparingly and only when they add information the code does not already say clearly.
+
+- Keep module docstrings on public modules.
+- Use Google-style docstrings for classes and functions in `src/klayout_mcp`, including internal helpers.
+- Add inline comments only for intent, invariants, KLayout quirks, unit conversions, or error-handling rationale.
+- Do not add comments that restate obvious code line by line.
+- Prefer short comments near the relevant code over long explanatory blocks.
+
 ## Releases
 
 Human-readable release notes live in [CHANGELOG.md](CHANGELOG.md).
