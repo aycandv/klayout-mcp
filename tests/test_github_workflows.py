@@ -14,6 +14,7 @@ def test_ci_workflow_runs_lint_tests_and_build_on_push_and_pr():
     assert "uv sync --extra dev" in text
     assert "uv run ruff check ." in text
     assert "uv run pytest -q" in text
+    assert "uv run --extra docs mkdocs build --strict" in text
     assert "uv build" in text
     assert "uvx twine check dist/*" in text
 

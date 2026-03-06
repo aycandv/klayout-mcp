@@ -23,6 +23,7 @@ Useful local commands:
 ```bash
 ./.venv/bin/python -m ruff check .
 ./.venv/bin/python -m pytest -q
+uv run --extra docs mkdocs build --strict
 ```
 
 ## Branch Workflow

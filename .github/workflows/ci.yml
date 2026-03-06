@@ -74,6 +74,9 @@ jobs:
       - name: Run tests
         run: uv run pytest -q
 
+      - name: Build documentation
+        run: uv run --extra docs mkdocs build --strict
+
       - name: Build distributions
         run: uv build
 
