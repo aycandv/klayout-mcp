@@ -8,7 +8,6 @@ from typing import Any
 ERROR_CODES = frozenset(
     {
         "FILE_NOT_FOUND",
-        "PATH_NOT_ALLOWED",
         "UNSUPPORTED_FORMAT",
         "TOP_CELL_NOT_FOUND",
         "SESSION_NOT_FOUND",
@@ -19,7 +18,6 @@ ERROR_CODES = frozenset(
         "QUERY_TOO_LARGE",
         "TOOL_LIMIT_EXCEEDED",
         "RENDER_FAILED",
-        "DRC_SCRIPT_NOT_ALLOWED",
         "DRC_RUN_FAILED",
         "INTERNAL_ERROR",
     }

@@ -172,17 +172,11 @@ def _resolve_script_path(script_path: str, settings: Settings) -> Path:
     candidate = Path(script_path).expanduser()
     if not candidate.is_absolute():
         raise KLayoutMCPError(
-            "DRC_SCRIPT_NOT_ALLOWED",
+            "INVALID_TARGET",
             "DRC script path must be absolute",
             {"script_path": script_path},
         )
     resolved = candidate.resolve()
-    if not settings.is_path_allowed(resolved, drc=True):
-        raise KLayoutMCPError(
-            "DRC_SCRIPT_NOT_ALLOWED",
-            "DRC script path is outside the allowed roots",
-            {"script_path": str(resolved)},
-        )
     if not resolved.exists():
         raise KLayoutMCPError(
             "FILE_NOT_FOUND",

@@ -63,7 +63,7 @@ def load_layout(
     requested_path = Path(path).expanduser()
     if not requested_path.is_absolute():
         raise KLayoutMCPError(
-            "PATH_NOT_ALLOWED",
+            "INVALID_TARGET",
             "Layout path must be absolute",
             {"path": path},
         )
@@ -73,12 +73,6 @@ def load_layout(
         raise KLayoutMCPError(
             "FILE_NOT_FOUND",
             "Layout file does not exist",
-            {"path": str(resolved_path)},
-        )
-    if not settings.is_path_allowed(resolved_path):
-        raise KLayoutMCPError(
-            "PATH_NOT_ALLOWED",
-            "Layout path is outside configured roots",
             {"path": str(resolved_path)},
         )
 

@@ -33,11 +33,9 @@ export KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout
 
 ## Quick Start
 
-Set narrow allowlists for the layouts and DRC decks the server may access:
+Set `KLAYOUT_BIN` if the `klayout` executable is not already on `PATH`:
 
 ```bash
-export KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS=/abs/path/to/layouts
-export KLAYOUT_MCP_ALLOWED_DRC_ROOTS=/abs/path/to/drc-decks
 export KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout
 ```
 
@@ -64,8 +62,6 @@ command = "uvx"
 args = ["klayout-mcp"]
 
 [mcp_servers.klayout.env]
-KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS = "/abs/path/to/layouts"
-KLAYOUT_MCP_ALLOWED_DRC_ROOTS = "/abs/path/to/drc-decks"
 KLAYOUT_BIN = "/Applications/klayout.app/Contents/MacOS/klayout"
 ```
 
@@ -73,8 +69,6 @@ Codex CLI also supports adding stdio servers directly:
 
 ```bash
 codex mcp add klayout \
-  --env KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS=/abs/path/to/layouts \
-  --env KLAYOUT_MCP_ALLOWED_DRC_ROOTS=/abs/path/to/drc-decks \
   --env KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout \
   -- uvx klayout-mcp
 ```
@@ -90,8 +84,6 @@ Claude Code supports project-scoped `.mcp.json` and user-scoped MCP configuratio
       "command": "uvx",
       "args": ["klayout-mcp"],
       "env": {
-        "KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS": "/abs/path/to/layouts",
-        "KLAYOUT_MCP_ALLOWED_DRC_ROOTS": "/abs/path/to/drc-decks",
         "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
       }
     }
@@ -103,8 +95,6 @@ CLI form:
 
 ```bash
 claude mcp add klayout --scope project \
-  --env KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS=/abs/path/to/layouts \
-  --env KLAYOUT_MCP_ALLOWED_DRC_ROOTS=/abs/path/to/drc-decks \
   --env KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout \
   -- uvx klayout-mcp
 ```
@@ -120,8 +110,6 @@ Cursor reads MCP servers from `.cursor/mcp.json` for a project or `~/.cursor/mcp
       "command": "uvx",
       "args": ["klayout-mcp"],
       "env": {
-        "KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS": "/abs/path/to/layouts",
-        "KLAYOUT_MCP_ALLOWED_DRC_ROOTS": "/abs/path/to/drc-decks",
         "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
       }
     }
@@ -142,8 +130,6 @@ OpenCode reads MCP servers from `opencode.json` under the `mcp` key.
       "command": ["uvx", "klayout-mcp"],
       "enabled": true,
       "environment": {
-        "KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS": "/abs/path/to/layouts",
-        "KLAYOUT_MCP_ALLOWED_DRC_ROOTS": "/abs/path/to/drc-decks",
         "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
       }
     }
@@ -157,7 +143,7 @@ Use this stdio shape:
 
 - `command`: `uvx`
 - `args`: `["klayout-mcp"]`
-- `env`: `KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS`, `KLAYOUT_MCP_ALLOWED_DRC_ROOTS`, `KLAYOUT_BIN`
+- `env`: `KLAYOUT_BIN` when needed
 
 This server works well with agents because it is read-only with respect to layout content, but it still writes artifacts for renders, reports, and marker crops.
 
@@ -208,14 +194,12 @@ Supported environment variables:
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `KLAYOUT_MCP_ARTIFACT_ROOT` | Root directory for runtime artifacts | `<repo>/.artifacts` |
-| `KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS` | Colon-separated list of allowed layout roots | repo root |
-| `KLAYOUT_MCP_ALLOWED_DRC_ROOTS` | Colon-separated list of allowed DRC script roots | repo root |
 | `KLAYOUT_MCP_SESSION_TTL_SECONDS` | Session inactivity timeout | `3600` |
 | `KLAYOUT_BIN` | KLayout batch executable for DRC | `klayout` |
 
 Important behavior:
 
-- layout and DRC paths outside the allowlists are rejected
+- any absolute local path can be used for layouts and DRC scripts
 - artifact paths returned by tools are absolute
 - sessions expire lazily after inactivity
 - `close_session` removes the session artifact directory
@@ -258,26 +242,17 @@ Tool failures return structured JSON objects:
 Common codes include:
 
 - `FILE_NOT_FOUND`
-- `PATH_NOT_ALLOWED`
 - `SESSION_NOT_FOUND`
 - `INVALID_BOX`
 - `INVALID_LAYER`
 - `INVALID_TARGET`
-- `DRC_SCRIPT_NOT_ALLOWED`
 - `DRC_RUN_FAILED`
 
 ## Security Notes
 
 - This server is read-only with respect to layout content
-- input paths are restricted to configured allowlists
-- DRC execution is limited to scripts under `KLAYOUT_MCP_ALLOWED_DRC_ROOTS`
+- any absolute local layout path or DRC script path may be used
 - tool parameters are treated as data, not shell fragments
-
-Recommended practice:
-
-- point `KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS` to a small layout directory
-- point `KLAYOUT_MCP_ALLOWED_DRC_ROOTS` to a small deck directory
-- avoid using broad roots like your home directory
 
 ## Source Checkout
 

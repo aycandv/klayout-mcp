@@ -6,8 +6,6 @@
       "command": ["uvx", "klayout-mcp"],
       "enabled": true,
       "environment": {
-        "KLAYOUT_MCP_ALLOWED_LAYOUT_ROOTS": "/ABS/PATH/TO/layouts",
-        "KLAYOUT_MCP_ALLOWED_DRC_ROOTS": "/ABS/PATH/TO/drc-decks",
         "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
       }
     }
