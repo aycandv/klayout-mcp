@@ -11,6 +11,7 @@ async def test_all_contract_tool_names_exist(mcp_client):
         "list_layers",
         "query_region",
         "measure_geometry",
+        "analyze_waveguide",
         "set_view",
         "render_view",
         "run_drc_script",

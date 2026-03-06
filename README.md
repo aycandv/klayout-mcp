@@ -49,10 +49,11 @@ Typical workflow:
 3. `list_cells` or `describe_cell`
 4. `query_region`
 5. `measure_geometry`
-6. `render_view`
-7. `run_drc_script`
-8. `extract_markers`
-9. `close_session`
+6. `analyze_waveguide`
+7. `render_view`
+8. `run_drc_script`
+9. `extract_markers`
+10. `close_session`
 
 ## Client Setup
 
@@ -152,7 +153,7 @@ Use:
 
 - Session: `open_layout`, `close_session`
 - Structure: `list_layers`, `list_cells`, `describe_cell`
-- Geometry: `query_region`, `measure_geometry`
+- Geometry: `query_region`, `measure_geometry`, `analyze_waveguide`
 - View: `set_view`, `render_view`
 - DRC: `run_drc_script`, `extract_markers`
 
