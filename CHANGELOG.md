@@ -6,9 +6,9 @@ The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
 ## [Unreleased]
 
-### Added
+### Changed
 
-- Nothing yet.
+- Added `release-please` automation for version selection, release PRs, tagging, GitHub releases, and PyPI publishing
 
 ## [0.1.1] - 2026-03-06
 

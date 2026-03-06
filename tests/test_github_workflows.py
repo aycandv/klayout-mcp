@@ -1,4 +1,6 @@
 from pathlib import Path
+import json
+import tomllib
 
 
 def _workflow_text(name: str) -> str:
@@ -27,12 +29,34 @@ def test_release_workflow_uses_separate_build_and_trusted_publish_jobs():
     assert "pypa/gh-action-pypi-publish@release/v1" in text
 
 
-def test_github_release_workflow_creates_release_from_version_tags():
-    text = _workflow_text("github-release.yml")
+def test_release_please_workflow_creates_release_prs_and_publishes_to_pypi():
+    text = _workflow_text("release-please.yml")
     assert "push:" in text
-    assert '      - "v*"' in text
-    assert "contents: write" in text
-    assert "actions/checkout" in text
-    assert 'gh release create "$GITHUB_REF_NAME"' in text
-    assert "--verify-tag" in text
-    assert "--generate-notes" in text
+    assert "branches:" in text
+    assert "main" in text
+    assert "googleapis/release-please-action@v4" in text
+    assert "RELEASE_PLEASE_TOKEN" in text
+    assert "release_created" in text
+    assert "environment:" in text
+    assert "name: pypi" in text
+    assert "id-token: write" in text
+    assert "uv build" in text
+    assert "uvx twine check dist/*" in text
+    assert "pypa/gh-action-pypi-publish@release/v1" in text
+
+
+def test_release_please_config_matches_current_python_package_version():
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text())
+    version = pyproject["project"]["version"]
+
+    config = json.loads(Path("release-please-config.json").read_text())
+    manifest = json.loads(Path(".release-please-manifest.json").read_text())
+
+    assert config["packages"]["."]["release-type"] == "python"
+    assert config["packages"]["."]["package-name"] == "klayout-mcp"
+    assert config["packages"]["."]["changelog-path"] == "CHANGELOG.md"
+    assert manifest["."] == version
+
+
+def test_tag_driven_github_release_workflow_is_removed():
+    assert not Path(".github/workflows/github-release.yml").exists()

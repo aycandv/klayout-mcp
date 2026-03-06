@@ -1,20 +1,19 @@
 # klayout-mcp
 
-Read-only MCP server for KLayout. It opens GDS/OAS layouts, inspects hierarchy and geometry, renders deterministic PNG views, and runs batch DRC with structured JSON results.
+Read-only MCP server for KLayout. It opens GDS/OAS layouts, inspects geometry and hierarchy, renders deterministic PNGs, and runs batch DRC with structured JSON output.
 
-## Install In 60 Seconds
+## Install
 
 Fastest one-off run:
 
 ```bash
-uvx klayout-mcp
+uvx klayout-mcp@latest
 ```
 
-Install once and keep the command on your machine:
+Install once:
 
 ```bash
 uv tool install klayout-mcp
-klayout-mcp
 ```
 
 Traditional Python install:
@@ -23,9 +22,7 @@ Traditional Python install:
 python -m pip install klayout-mcp
 ```
 
-`klayout-mcp` depends on the `klayout` Python package. For batch DRC, you also need the `klayout` executable on `PATH` or `KLAYOUT_BIN` set explicitly.
-
-Common macOS app path:
+For batch DRC, the `klayout` executable must be on `PATH` or exposed through `KLAYOUT_BIN`.
 
 ```bash
 export KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout
@@ -33,121 +30,16 @@ export KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout
 
 ## Quick Start
 
-Set `KLAYOUT_BIN` if the `klayout` executable is not already on `PATH`:
-
-```bash
-export KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout
-```
-
-The server speaks MCP over `stdio`. The most common launcher is:
+`klayout-mcp` is a stdio MCP server. The default launch shape is:
 
 ```text
 command: uvx
-args:    klayout-mcp
+args:    klayout-mcp@latest
 ```
 
-If your host cannot use `uvx`, install once with `uv tool install klayout-mcp` and point the client at the installed `klayout-mcp` binary instead.
+If your client cannot use `uvx`, install the tool once and launch `klayout-mcp` directly.
 
-## Choose Your Client
-
-Ready-to-copy config files live in [examples/mcp/README.md](examples/mcp/README.md).
-
-### Codex
-
-Codex supports user-scoped `~/.codex/config.toml` and project-scoped `.codex/config.toml`.
-
-```toml
-[mcp_servers.klayout]
-command = "uvx"
-args = ["klayout-mcp"]
-
-[mcp_servers.klayout.env]
-KLAYOUT_BIN = "/Applications/klayout.app/Contents/MacOS/klayout"
-```
-
-Codex CLI also supports adding stdio servers directly:
-
-```bash
-codex mcp add klayout \
-  --env KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout \
-  -- uvx klayout-mcp
-```
-
-### Claude Code
-
-Claude Code supports project-scoped `.mcp.json` and user-scoped MCP configuration.
-
-```json
-{
-  "mcpServers": {
-    "klayout": {
-      "command": "uvx",
-      "args": ["klayout-mcp"],
-      "env": {
-        "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
-      }
-    }
-  }
-}
-```
-
-CLI form:
-
-```bash
-claude mcp add klayout --scope project \
-  --env KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout \
-  -- uvx klayout-mcp
-```
-
-### Cursor
-
-Cursor reads MCP servers from `.cursor/mcp.json` for a project or `~/.cursor/mcp.json` globally.
-
-```json
-{
-  "mcpServers": {
-    "klayout": {
-      "command": "uvx",
-      "args": ["klayout-mcp"],
-      "env": {
-        "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
-      }
-    }
-  }
-}
-```
-
-### OpenCode
-
-OpenCode reads MCP servers from `opencode.json` under the `mcp` key.
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "klayout": {
-      "type": "local",
-      "command": ["uvx", "klayout-mcp"],
-      "enabled": true,
-      "environment": {
-        "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
-      }
-    }
-  }
-}
-```
-
-### Other MCP Hosts And Agents
-
-Use this stdio shape:
-
-- `command`: `uvx`
-- `args`: `["klayout-mcp"]`
-- `env`: `KLAYOUT_BIN` when needed
-
-This server works well with agents because it is read-only with respect to layout content, but it still writes artifacts for renders, reports, and marker crops.
-
-## Typical Workflow
+Typical workflow:
 
 1. `open_layout`
 2. `list_layers`
@@ -159,37 +51,109 @@ This server works well with agents because it is read-only with respect to layou
 8. `extract_markers`
 9. `close_session`
 
-## Available Tools
+## Client Setup
 
-### Session
+More copy-paste examples live in [examples/mcp/README.md](examples/mcp/README.md).
 
-- `open_layout`
-- `close_session`
+### Codex
 
-### Structure
+```toml
+[mcp_servers.klayout]
+command = "uvx"
+args = ["klayout-mcp@latest"]
 
-- `list_layers`
-- `list_cells`
-- `describe_cell`
+[mcp_servers.klayout.env]
+KLAYOUT_BIN = "/Applications/klayout.app/Contents/MacOS/klayout"
+```
 
-### Geometry
+Or add it with the CLI:
 
-- `query_region`
-- `measure_geometry`
+```bash
+codex mcp add klayout \
+  --env KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout \
+  -- uvx klayout-mcp@latest
+```
 
-### View
+### Claude Code
 
-- `set_view`
-- `render_view`
+```json
+{
+  "mcpServers": {
+    "klayout": {
+      "command": "uvx",
+      "args": ["klayout-mcp@latest"],
+      "env": {
+        "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
+      }
+    }
+  }
+}
+```
 
-### DRC
+Or add it with the CLI:
 
-- `run_drc_script`
-- `extract_markers`
+```bash
+claude mcp add --transport stdio klayout \
+  --scope project \
+  --env KLAYOUT_BIN=/Applications/klayout.app/Contents/MacOS/klayout \
+  -- uvx klayout-mcp@latest
+```
+
+### Cursor
+
+Cursor is file-config based:
+
+```json
+{
+  "mcpServers": {
+    "klayout": {
+      "command": "uvx",
+      "args": ["klayout-mcp@latest"],
+      "env": {
+        "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
+      }
+    }
+  }
+}
+```
+
+### OpenCode
+
+OpenCode is file-config based:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "klayout": {
+      "type": "local",
+      "command": ["uvx", "klayout-mcp@latest"],
+      "enabled": true,
+      "environment": {
+        "KLAYOUT_BIN": "/Applications/klayout.app/Contents/MacOS/klayout"
+      }
+    }
+  }
+}
+```
+
+### Other MCP Hosts
+
+Use:
+
+- `command`: `uvx`
+- `args`: `["klayout-mcp@latest"]`
+- `env`: `KLAYOUT_BIN` when needed
+
+## Tools
+
+- Session: `open_layout`, `close_session`
+- Structure: `list_layers`, `list_cells`, `describe_cell`
+- Geometry: `query_region`, `measure_geometry`
+- View: `set_view`, `render_view`
+- DRC: `run_drc_script`, `extract_markers`
 
 ## Configuration
-
-Supported environment variables:
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
@@ -197,37 +161,18 @@ Supported environment variables:
 | `KLAYOUT_MCP_SESSION_TTL_SECONDS` | Session inactivity timeout | `3600` |
 | `KLAYOUT_BIN` | KLayout batch executable for DRC | `klayout` |
 
-Important behavior:
+Behavior:
 
 - any absolute local path can be used for layouts and DRC scripts
 - artifact paths returned by tools are absolute
 - sessions expire lazily after inactivity
 - `close_session` removes the session artifact directory
 
-## Artifacts
+## Artifacts And Errors
 
-Runtime artifacts are stored under:
+Artifacts are stored under `.artifacts/sessions/<session_id>/` and include renders, DRC reports, marker crops, and logs.
 
-```text
-.artifacts/
-  sessions/
-    <session_id>/
-      session.json
-      renders/
-      drc/
-```
-
-Typical outputs include:
-
-- rendered PNGs
-- DRC reports (`.lyrdb`)
-- `markers.json`
-- `stdout.txt` and `stderr.txt`
-- crop images for extracted markers
-
-## Error Model
-
-Tool failures return structured JSON objects:
+Tool failures return structured JSON such as:
 
 ```json
 {
@@ -239,63 +184,40 @@ Tool failures return structured JSON objects:
 }
 ```
 
-Common codes include:
+Common codes: `FILE_NOT_FOUND`, `SESSION_NOT_FOUND`, `INVALID_BOX`, `INVALID_LAYER`, `INVALID_TARGET`, `DRC_RUN_FAILED`.
 
-- `FILE_NOT_FOUND`
-- `SESSION_NOT_FOUND`
-- `INVALID_BOX`
-- `INVALID_LAYER`
-- `INVALID_TARGET`
-- `DRC_RUN_FAILED`
+## Development
 
-## Security Notes
-
-- This server is read-only with respect to layout content
-- any absolute local layout path or DRC script path may be used
-- tool parameters are treated as data, not shell fragments
-
-## Source Checkout
-
-For local development or unreleased builds:
+For a source checkout:
 
 ```bash
 uv sync --extra dev
 uv run klayout-mcp
 ```
 
-If an MCP client needs to launch a source checkout directly:
+If an MCP client needs to launch the checkout directly:
 
 ```text
 command: uv
 args:    --directory /abs/path/to/klayout-mcp run klayout-mcp
 ```
 
-Contributor workflow, branch policy, and release expectations are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributor workflow is in [CONTRIBUTING.md](CONTRIBUTING.md). Release notes are in [CHANGELOG.md](CHANGELOG.md).
 
-## CI And Releases
+## Releases
 
-GitHub Actions workflows included in this repo:
+Normal releases are automated with `release-please`.
 
-- `.github/workflows/ci.yml`
-- `.github/workflows/release.yml`
-- `.github/workflows/github-release.yml`
+- merge Conventional Commits to `main`
+- `release-please` opens or updates a release PR
+- merging that release PR updates `pyproject.toml`, `CHANGELOG.md`, creates the tag and GitHub release, and publishes to PyPI
 
-Human-readable release notes live in [CHANGELOG.md](CHANGELOG.md).
+To let the release PR run normal CI under branch protection, configure a repository secret named `RELEASE_PLEASE_TOKEN` with a GitHub token that can open pull requests. Without it, `release-please` falls back to `github.token`, which may not trigger PR workflows.
 
-Release flow:
+The manual [release.yml](/Users/avit/individual/klayout-mcp/.github/workflows/release.yml) workflow remains available for TestPyPI validation and recovery publishing.
 
-1. Update `version` in `pyproject.toml`
-2. Move `Unreleased` notes into a new version section in `CHANGELOG.md`
-3. Merge to `main`
-4. Run the `Release` workflow for `testpypi`
-5. Verify the package from TestPyPI
-6. Run the `Release` workflow for `pypi`
-7. Push the matching tag, for example `v0.1.0`
-
-## Reference Docs
+## Reference
 
 - [docs/specs/2026-03-05-klayout-observer-mcp-contract.md](docs/specs/2026-03-05-klayout-observer-mcp-contract.md)
-- [docs/plans/2026-03-05-klayout-observer-mcp-implementation-plan.md](docs/plans/2026-03-05-klayout-observer-mcp-implementation-plan.md)
 - [docs/plans/2026-03-05-klayout-observer-mcp-design.md](docs/plans/2026-03-05-klayout-observer-mcp-design.md)
-
-If those documents disagree, follow the contract.
+- [docs/plans/2026-03-05-klayout-observer-mcp-implementation-plan.md](docs/plans/2026-03-05-klayout-observer-mcp-implementation-plan.md)
