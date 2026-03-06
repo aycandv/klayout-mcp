@@ -25,6 +25,20 @@ def measure_geometry(
     target_ids: list[str],
     dbu: float,
 ) -> dict[str, Any]:
+    """Measure derived geometry values from previously queried shape IDs.
+
+    Args:
+        runtime: Session runtime state containing cached shape references.
+        mode: Measurement mode defined by the contract.
+        target_ids: Shape reference IDs returned from `query_region`.
+        dbu: Layout database unit size in microns.
+
+    Returns:
+        dict[str, Any]: Measurement result payload.
+
+    Raises:
+        KLayoutMCPError: If the mode or targets are invalid for the measurement.
+    """
     expected_count = TARGET_COUNTS.get(mode)
     if expected_count is None:
         raise KLayoutMCPError(
@@ -71,6 +85,7 @@ def measure_geometry(
 
 
 def _resolve_target(shape_refs: dict[str, ShapeRecord], target_id: str) -> ShapeRecord:
+    """Resolve one cached shape reference by ID."""
     target = shape_refs.get(target_id)
     if target is None:
         raise KLayoutMCPError(
@@ -82,6 +97,7 @@ def _resolve_target(shape_refs: dict[str, ShapeRecord], target_id: str) -> Shape
 
 
 def _response(mode: str, target_ids: list[str], value_dbu: int | float, dbu: float, method: str) -> dict[str, Any]:
+    """Build the standard scalar measurement response payload."""
     return {
         "mode": mode,
         "target_ids": target_ids,
@@ -92,6 +108,7 @@ def _response(mode: str, target_ids: list[str], value_dbu: int | float, dbu: flo
 
 
 def _path_width(target: ShapeRecord) -> int:
+    """Return the stored path width for a path shape."""
     if target.path_width_dbu is None:
         raise KLayoutMCPError(
             "INVALID_TARGET",
@@ -102,6 +119,7 @@ def _path_width(target: ShapeRecord) -> int:
 
 
 def _segment_length(target: ShapeRecord) -> float:
+    """Measure the total polyline length of a target shape."""
     if len(target.points_dbu) < 2:
         raise KLayoutMCPError(
             "INVALID_TARGET",
@@ -112,12 +130,14 @@ def _segment_length(target: ShapeRecord) -> float:
 
 
 def _centerline_distance(first: ShapeRecord, second: ShapeRecord) -> float:
+    """Measure distance between two shape bounding-box centers."""
     ax, ay = _bbox_center(first)
     bx, by = _bbox_center(second)
     return math.hypot(ax - bx, ay - by)
 
 
 def _edge_gap(first: ShapeRecord, second: ShapeRecord) -> float:
+    """Measure the minimum gap between two bounding boxes."""
     a_left, a_bottom, a_right, a_top = first.bbox_dbu
     b_left, b_bottom, b_right, b_top = second.bbox_dbu
     dx = max(a_left - b_right, b_left - a_right, 0)
@@ -128,6 +148,7 @@ def _edge_gap(first: ShapeRecord, second: ShapeRecord) -> float:
 
 
 def _bend_radius_estimate(target: ShapeRecord) -> float:
+    """Estimate bend radius from the shortest adjacent path segment."""
     if len(target.points_dbu) < 3:
         raise KLayoutMCPError(
             "INVALID_TARGET",
@@ -142,6 +163,7 @@ def _bend_radius_estimate(target: ShapeRecord) -> float:
 
 
 def _overlap_area(first: ShapeRecord, second: ShapeRecord) -> int:
+    """Return the overlap area of two bounding boxes in database units."""
     left = max(first.bbox_dbu[0], second.bbox_dbu[0])
     bottom = max(first.bbox_dbu[1], second.bbox_dbu[1])
     right = min(first.bbox_dbu[2], second.bbox_dbu[2])
@@ -152,6 +174,7 @@ def _overlap_area(first: ShapeRecord, second: ShapeRecord) -> int:
 
 
 def _polyline_length(points: tuple[tuple[int, int], ...]) -> float:
+    """Return the total length of a polyline in database units."""
     return sum(
         math.hypot(end[0] - start[0], end[1] - start[1])
         for start, end in zip(points, points[1:], strict=False)
@@ -159,5 +182,6 @@ def _polyline_length(points: tuple[tuple[int, int], ...]) -> float:
 
 
 def _bbox_center(target: ShapeRecord) -> tuple[float, float]:
+    """Return the center point of a shape bounding box."""
     left, bottom, right, top = target.bbox_dbu
     return ((left + right) / 2.0, (bottom + top) / 2.0)

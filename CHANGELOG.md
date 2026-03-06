@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
+## [0.1.4](https://github.com/aycandv/klayout-mcp/compare/v0.1.3...v0.1.4) (2026-03-06)
+
+
+### Documentation
+
+* enforce google-style docstrings ([7579f4f](https://github.com/aycandv/klayout-mcp/commit/7579f4fbdb584e58ffacc2266dc8e44f7ff62c0c))
+* enforce google-style docstrings ([8e8cf06](https://github.com/aycandv/klayout-mcp/commit/8e8cf06e3c821cd79f3996671d9d4c442e526c36))
+
+## [0.1.3](https://github.com/aycandv/klayout-mcp/compare/v0.1.2...v0.1.3) (2026-03-06)
+
+
+### Bug Fixes
+
+* publish releases from trusted workflow ([559b702](https://github.com/aycandv/klayout-mcp/commit/559b702904536f75a6d156526cac1aea5e3f20b0))
+* publish releases from trusted workflow ([b5328f7](https://github.com/aycandv/klayout-mcp/commit/b5328f7c86e27691e869eaf87550a2263f8f0319))
+
 ## [0.1.2](https://github.com/aycandv/klayout-mcp/compare/v0.1.1...v0.1.2) (2026-03-06)
 
 

@@ -18,6 +18,8 @@ from klayout_mcp.session_store import SessionStore
 
 @dataclass(slots=True)
 class LayoutTools:
+    """Stateful MCP tool handlers bound to one settings and session store pair."""
+
     settings: Settings
     session_store: SessionStore
 
@@ -27,6 +29,7 @@ class LayoutTools:
         top_cell: str | None = None,
         format: str | None = None,
     ) -> dict[str, Any]:
+        """Open a layout file and create the initial session state."""
         loaded = load_layout(
             path=path,
             settings=self.settings,
@@ -76,14 +79,17 @@ class LayoutTools:
         }
 
     def close_session(self, session_id: str) -> dict[str, Any]:
+        """Close a session and delete its artifacts."""
         return self.session_store.close(session_id)
 
     def list_layers(self, session_id: str) -> dict[str, Any]:
+        """List visible layers for an active session."""
         runtime = self._require_runtime(session_id)
         layers = [self._layer_response(layer) for layer in runtime["layers"]]
         return {"session_id": session_id, "layers": layers}
 
     def list_cells(self, session_id: str, max_depth: int | None = None) -> dict[str, Any]:
+        """List cells in the layout hierarchy for an active session."""
         runtime = self._require_runtime(session_id)
         return {
             "session_id": session_id,
@@ -91,6 +97,7 @@ class LayoutTools:
         }
 
     def describe_cell(self, session_id: str, cell: str, depth: int = 1) -> dict[str, Any]:
+        """Describe one cell from the active layout session."""
         runtime = self._require_runtime(session_id)
         result = describe_cell(runtime["layout"], cell, depth=depth)
         result["session_id"] = session_id
@@ -106,6 +113,7 @@ class LayoutTools:
         max_shapes: int = 200,
         max_instances: int = 100,
     ) -> dict[str, Any]:
+        """Return geometry objects overlapping the requested region."""
         runtime = self._require_runtime(session_id)
         result = query_region(
             layout=runtime["layout"],
@@ -126,6 +134,7 @@ class LayoutTools:
         mode: str,
         target_ids: list[str],
     ) -> dict[str, Any]:
+        """Measure one derived geometric value from stored query targets."""
         runtime = self._require_runtime(session_id)
         result = measure_geometry(
             runtime=runtime,
@@ -143,6 +152,7 @@ class LayoutTools:
         cell: str | None = None,
         layers: list[dict[str, int | str]] | None = None,
     ) -> dict[str, Any]:
+        """Update the persisted render view for a session."""
         runtime = self._require_runtime(session_id)
         view = update_view_state(
             layout=runtime["layout"],
@@ -164,6 +174,7 @@ class LayoutTools:
         annotations: list[dict[str, Any]] | None = None,
         style: str = "light",
     ) -> dict[str, Any]:
+        """Render the current or requested session view into a PNG."""
         session, runtime = self._require_session_and_runtime(session_id)
         return render_view(
             session_id=session_id,
@@ -186,6 +197,7 @@ class LayoutTools:
         script_type: str = "ruby",
         params: dict[str, str] | None = None,
     ) -> dict[str, Any]:
+        """Execute a batch DRC deck against the session layout."""
         session, runtime = self._require_session_and_runtime(session_id)
         return run_drc_script(
             session_id=session_id,
@@ -204,6 +216,7 @@ class LayoutTools:
         include_crops: bool = False,
         crop_size_um: dict[str, float] | None = None,
     ) -> dict[str, Any]:
+        """Return parsed markers from a prior DRC run."""
         session, runtime = self._require_session_and_runtime(session_id)
         return extract_markers(
             session_id=session_id,
@@ -215,13 +228,16 @@ class LayoutTools:
         )
 
     def _layer_response(self, layer: LayerSummary) -> dict[str, Any]:
+        """Convert a stored layer summary into the tool response form."""
         return layer.to_response()
 
     def _require_runtime(self, session_id: str) -> dict[str, Any]:
+        """Return runtime state for an active session."""
         _, runtime = self._require_session_and_runtime(session_id)
         return runtime
 
     def _require_session_and_runtime(self, session_id: str) -> tuple[Any, dict[str, Any]]:
+        """Return both session metadata and runtime state for an active session."""
         session = self.session_store.get(session_id)
         if session is None:
             error_code = "SESSION_EXPIRED" if self.session_store.was_expired(session_id) else "SESSION_NOT_FOUND"

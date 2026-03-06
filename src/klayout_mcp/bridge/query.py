@@ -26,6 +26,24 @@ def query_region(
     max_shapes: int = 200,
     max_instances: int = 100,
 ) -> dict[str, Any]:
+    """Collect shapes, texts, and instances overlapping a query box.
+
+    Args:
+        layout: Loaded KLayout database.
+        runtime: Session runtime state used for stable shape references.
+        box: Query box in microns.
+        cell_name: Optional cell override.
+        layers: Optional layer filter.
+        hierarchy_mode: Query traversal mode.
+        max_shapes: Maximum number of shapes to return.
+        max_instances: Maximum number of instances to return.
+
+    Returns:
+        dict[str, Any]: Query payload containing shapes, texts, and instances.
+
+    Raises:
+        KLayoutMCPError: If the query parameters are invalid.
+    """
     if hierarchy_mode not in VALID_HIERARCHY_MODES:
         raise KLayoutMCPError(
             "INVALID_TARGET",
@@ -77,6 +95,7 @@ def query_region(
             dbu=dbu,
         )
 
+    # Keep response order deterministic so repeated agent calls are stable.
     sorted_shapes = sorted(
         shape_records,
         key=lambda item: (
@@ -134,6 +153,7 @@ def _collect_top_shapes(
     runtime: dict[str, Any],
     dbu: float,
 ) -> None:
+    """Collect directly overlapping shapes from the query cell only."""
     for shape in cell.shapes(layer_index).each_overlapping(query_box):
         _add_shape_or_text(
             shape=shape,
@@ -161,6 +181,7 @@ def _collect_recursive_shapes(
     runtime: dict[str, Any],
     dbu: float,
 ) -> None:
+    """Collect overlapping shapes through hierarchical traversal."""
     iterator = cell.begin_shapes_rec_overlapping(layer_index, query_box)
     while not iterator.at_end():
         shape = iterator.shape()
@@ -196,6 +217,7 @@ def _add_shape_or_text(
     runtime: dict[str, Any],
     dbu: float,
 ) -> None:
+    """Route one queried object into the shape or text result buckets."""
     if shape.is_text():
         text = transformed_shape.text if hasattr(transformed_shape, "text") else transformed_shape
         text_records.append(
@@ -216,6 +238,7 @@ def _add_shape_or_text(
         instance_path=instance_path,
         dbu=dbu,
     )
+    # Measurements later refer back to shapes by stable IDs from this query pass.
     runtime.setdefault("shape_refs", {})[record.id] = record
     shape_records.append(record)
 
@@ -230,6 +253,7 @@ def _shape_record(
     instance_path: tuple[str, ...],
     dbu: float,
 ) -> ShapeRecord:
+    """Build a stable shape record from a queried KLayout shape."""
     bbox = transformed_shape.bbox()
     bbox_dbu = (
         int(bbox.left),
@@ -292,6 +316,7 @@ def _shape_record(
 
 
 def _collect_instances(cell: kdb.Cell, query_box: kdb.DBox) -> list[dict[str, Any]]:
+    """Collect top-level child instances overlapping the query box."""
     instances: list[dict[str, Any]] = []
     for index, instance in enumerate(cell.each_overlapping_inst(query_box)):
         transform = instance.dcplx_trans
@@ -316,6 +341,7 @@ def _resolve_layer_indices(
     layout: kdb.Layout,
     layers: list[dict[str, int | str]] | None,
 ) -> list[int]:
+    """Resolve optional layer filters into KLayout layer indexes."""
     if not layers:
         return sorted(
             list(layout.layer_indices()),
@@ -343,6 +369,7 @@ def _resolve_layer_indices(
 
 
 def _dbox_from_input(box: dict[str, float]) -> kdb.DBox:
+    """Validate and convert a micron query box into a KLayout `DBox`."""
     left = float(box["left"])
     bottom = float(box["bottom"])
     right = float(box["right"])
@@ -357,6 +384,7 @@ def _dbox_from_input(box: dict[str, float]) -> kdb.DBox:
 
 
 def _shape_kind(shape: kdb.Shape) -> str:
+    """Return the contract shape kind for a KLayout shape."""
     if shape.is_path():
         return "path"
     if shape.is_box():
@@ -369,6 +397,7 @@ def _shape_kind(shape: kdb.Shape) -> str:
 
 
 def _transform_shape(shape: kdb.Shape, transform: Any) -> Any:
+    """Apply an iterator transform to the current shape payload."""
     if shape.is_path():
         return shape.path.transformed(transform)
     if shape.is_box():
@@ -380,6 +409,7 @@ def _transform_shape(shape: kdb.Shape, transform: Any) -> Any:
     return shape
 
 def _micron_box(box: kdb.DBox) -> dict[str, float]:
+    """Convert a `DBox` into rounded micron coordinates."""
     return {
         "left": round(float(box.left), 6),
         "bottom": round(float(box.bottom), 6),
@@ -389,6 +419,7 @@ def _micron_box(box: kdb.DBox) -> dict[str, float]:
 
 
 def _micron_box_from_box(box: kdb.Box, dbu: float) -> dict[str, float]:
+    """Convert a database-unit box into rounded micron coordinates."""
     return {
         "left": round(float(box.left) * dbu, 6),
         "bottom": round(float(box.bottom) * dbu, 6),

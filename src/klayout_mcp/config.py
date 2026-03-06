@@ -12,6 +12,7 @@ KLAYOUT_BIN_ENV = "KLAYOUT_BIN"
 
 
 def _resolve_path(value: str, repo_root: Path) -> Path:
+    """Resolve a user-provided path relative to the repository root."""
     candidate = Path(value).expanduser()
     if not candidate.is_absolute():
         candidate = repo_root / candidate
@@ -20,6 +21,8 @@ def _resolve_path(value: str, repo_root: Path) -> Path:
 
 @dataclass(slots=True, frozen=True)
 class Settings:
+    """Resolved runtime configuration for the MCP server process."""
+
     repo_root: Path
     artifact_root: Path
     session_ttl_seconds: int
@@ -27,6 +30,7 @@ class Settings:
 
     @classmethod
     def from_root(cls, root: Path) -> "Settings":
+        """Build settings from a repository root and current environment."""
         repo_root = root.expanduser().resolve()
 
         artifact_root_raw = os.getenv(ARTIFACT_ROOT_ENV)

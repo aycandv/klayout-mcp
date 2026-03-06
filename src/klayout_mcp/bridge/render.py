@@ -22,6 +22,16 @@ def default_view_state(
     bbox_um: dict[str, float],
     layers: list[LayerSummary],
 ) -> dict[str, Any]:
+    """Build the default persisted view for a newly opened session.
+
+    Args:
+        selected_top_cell: Default cell to render.
+        bbox_um: Initial view box in microns.
+        layers: Visible layout layers.
+
+    Returns:
+        dict[str, Any]: Serializable default view state.
+    """
     return {
         "cell": selected_top_cell,
         "box_um": dict(bbox_um),
@@ -37,6 +47,18 @@ def update_view_state(
     cell: str | None = None,
     layers: list[dict[str, int | str]] | None = None,
 ) -> dict[str, Any]:
+    """Validate and persist the session's current render view.
+
+    Args:
+        layout: Loaded KLayout database.
+        runtime: Session runtime state.
+        box: Optional replacement box in microns.
+        cell: Optional replacement cell.
+        layers: Optional replacement visible layers.
+
+    Returns:
+        dict[str, Any]: Updated persisted view state.
+    """
     current = _current_view_state(layout, runtime)
     next_view = {
         "cell": _resolve_cell(layout, cell or current["cell"]),
@@ -61,6 +83,27 @@ def render_view(
     style: str = "light",
     annotations: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    """Render the current or requested view state into a deterministic PNG.
+
+    Args:
+        session_id: Active session identifier.
+        source_path: Absolute layout source path.
+        artifact_dir: Session artifact directory.
+        layout: Loaded KLayout database.
+        runtime: Session runtime state.
+        box: Optional replacement view box in microns.
+        cell: Optional replacement cell.
+        layers: Optional replacement visible layers.
+        image_size: Optional output image size.
+        style: Render style name.
+        annotations: Reserved annotation payload.
+
+    Returns:
+        dict[str, Any]: Render metadata and output artifact path.
+
+    Raises:
+        KLayoutMCPError: If the view request is invalid.
+    """
     del annotations
 
     if style not in ALLOWED_STYLES:
@@ -70,6 +113,7 @@ def render_view(
             {"style": style},
         )
 
+    # Rendering updates the persisted view so later calls inherit the same framing.
     view_state = update_view_state(
         layout=layout,
         runtime=runtime,
@@ -118,6 +162,7 @@ def render_view(
 
 
 def _current_view_state(layout: kdb.Layout, runtime: dict[str, Any]) -> dict[str, Any]:
+    """Return the persisted view state, creating the default when absent."""
     if "view" in runtime:
         return runtime["view"]
 
@@ -131,6 +176,7 @@ def _current_view_state(layout: kdb.Layout, runtime: dict[str, Any]) -> dict[str
 
 
 def _bbox_for_cell(layout: kdb.Layout, cell_name: str) -> dict[str, float]:
+    """Return the rounded micron bounding box for a named cell."""
     cell = layout.cell(cell_name)
     if cell is None:
         raise KLayoutMCPError(
@@ -148,6 +194,7 @@ def _bbox_for_cell(layout: kdb.Layout, cell_name: str) -> dict[str, float]:
 
 
 def _resolve_cell(layout: kdb.Layout, cell_name: str) -> str:
+    """Validate that a requested render cell exists."""
     if layout.cell(cell_name) is None:
         raise KLayoutMCPError(
             "INVALID_TARGET",
@@ -161,6 +208,7 @@ def _resolve_layers(
     available_layers: list[LayerSummary],
     requested_layers: list[dict[str, int | str]],
 ) -> list[dict[str, Any]]:
+    """Resolve requested visible layers against the loaded layer set."""
     available = {
         (layer.layer, layer.datatype): _layer_to_ref(layer)
         for layer in available_layers
@@ -180,6 +228,7 @@ def _resolve_layers(
 
 
 def _normalize_box(box: dict[str, float]) -> dict[str, float]:
+    """Validate and round a view box in microns."""
     left = float(box["left"])
     bottom = float(box["bottom"])
     right = float(box["right"])
@@ -199,6 +248,7 @@ def _normalize_box(box: dict[str, float]) -> dict[str, float]:
 
 
 def _normalize_image_size(image_size: dict[str, int] | None) -> tuple[int, int]:
+    """Validate and normalize the requested output image size."""
     if image_size is None:
         return (DEFAULT_IMAGE_SIZE["width"], DEFAULT_IMAGE_SIZE["height"])
     width = int(image_size["width"])
@@ -213,6 +263,7 @@ def _normalize_image_size(image_size: dict[str, int] | None) -> tuple[int, int]:
 
 
 def _apply_style(view: klay.LayoutView, style: str) -> None:
+    """Apply one of the supported deterministic render styles."""
     view.set_config("grid-visible", "false")
     if style == "light":
         view.set_config("background-color", "#ffffff")
@@ -229,10 +280,12 @@ def _apply_style(view: klay.LayoutView, style: str) -> None:
 
 
 def _apply_layer_visibility(view: klay.LayoutView, selected_layers: list[dict[str, Any]]) -> None:
+    """Apply layer visibility from the normalized view state."""
     visible = {(int(layer["layer"]), int(layer["datatype"])) for layer in selected_layers}
     for layer in view.each_layer():
         layer.visible = (int(layer.source_layer), int(layer.source_datatype)) in visible
 
 
 def _layer_to_ref(layer: LayerSummary) -> dict[str, Any]:
+    """Convert a layer summary into the persisted view-layer form."""
     return layer.to_response()

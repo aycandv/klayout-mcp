@@ -31,6 +31,23 @@ def run_drc_script(
     script_type: str = "ruby",
     params: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    """Run a batch KLayout DRC script and capture its artifacts.
+
+    Args:
+        session_id: Active session identifier.
+        settings: Runtime process settings.
+        session: Persisted session record.
+        runtime: Session runtime state.
+        script_path: Absolute path to the DRC deck.
+        script_type: DRC script language.
+        params: Optional runtime parameters passed through `-rd`.
+
+    Returns:
+        dict[str, Any]: DRC run summary and artifact metadata.
+
+    Raises:
+        KLayoutMCPError: If the script path, batch execution, or report is invalid.
+    """
     resolved_script = _resolve_script_path(script_path, settings)
     normalized_type = _normalize_script_type(script_type)
     run_id = f"drc_{secrets.token_hex(4)}"
@@ -124,6 +141,22 @@ def extract_markers(
     include_crops: bool = False,
     crop_size_um: dict[str, float] | None = None,
 ) -> dict[str, Any]:
+    """Return parsed DRC markers and optionally render per-marker crops.
+
+    Args:
+        session_id: Active session identifier.
+        session: Persisted session record.
+        runtime: Session runtime state.
+        run_id: Prior DRC run identifier.
+        include_crops: Whether to render marker crops.
+        crop_size_um: Optional crop size override in microns.
+
+    Returns:
+        dict[str, Any]: Marker payload, optionally including crop artifacts.
+
+    Raises:
+        KLayoutMCPError: If the requested DRC run is not available.
+    """
     drc_run = runtime.get("drc_runs", {}).get(run_id)
     if drc_run is None:
         raise KLayoutMCPError(
@@ -169,6 +202,7 @@ def extract_markers(
 
 
 def _resolve_script_path(script_path: str, settings: Settings) -> Path:
+    """Validate and resolve the absolute DRC deck path."""
     candidate = Path(script_path).expanduser()
     if not candidate.is_absolute():
         raise KLayoutMCPError(
@@ -187,6 +221,7 @@ def _resolve_script_path(script_path: str, settings: Settings) -> Path:
 
 
 def _normalize_script_type(script_type: str) -> str:
+    """Normalize the requested DRC script type."""
     normalized = script_type.strip().lower()
     if normalized not in VALID_SCRIPT_TYPES:
         raise KLayoutMCPError(
@@ -198,6 +233,7 @@ def _normalize_script_type(script_type: str) -> str:
 
 
 def _layout_export_suffix(layout_format: str) -> str:
+    """Return the file suffix used when exporting the session layout."""
     normalized = layout_format.lower()
     if normalized == "oasis":
         return "oas"
@@ -212,6 +248,7 @@ def _batch_command(
     report_path: Path,
     params: dict[str, str],
 ) -> list[str]:
+    """Build the KLayout batch command line for one DRC run."""
     command = [
         klayout_bin,
         "-b",
@@ -239,6 +276,7 @@ def _run_batch(
     stdout_path: Path,
     stderr_path: Path,
 ) -> subprocess.CompletedProcess[str]:
+    """Run the batch command and persist stdout and stderr artifacts."""
     try:
         completed = subprocess.run(
             command,
@@ -264,6 +302,7 @@ def _run_batch(
 
 
 def _parse_report(report_path: Path) -> list[dict[str, Any]]:
+    """Parse a `.lyrdb` report into deterministic marker dictionaries."""
     database = rdb.ReportDatabase()
     database.load(str(report_path))
 
@@ -298,6 +337,7 @@ def _parse_report(report_path: Path) -> list[dict[str, Any]]:
 
 
 def _item_box(item: Any) -> kdb.DBox | None:
+    """Merge all item values into one bounding box when possible."""
     merged: kdb.DBox | None = None
     for value in item.each_value():
         current = _value_box(value)
@@ -316,6 +356,7 @@ def _item_box(item: Any) -> kdb.DBox | None:
 
 
 def _value_box(value: Any) -> kdb.DBox | None:
+    """Return a bounding box for one report value variant."""
     if value.is_box():
         box = value.box()
         return kdb.DBox(box.left, box.bottom, box.right, box.top)
@@ -335,6 +376,7 @@ def _value_box(value: Any) -> kdb.DBox | None:
 
 
 def _box_to_dict(box: kdb.DBox) -> dict[str, float]:
+    """Convert a `DBox` into rounded micron coordinates."""
     return {
         "left": round(float(box.left), 6),
         "bottom": round(float(box.bottom), 6),
@@ -344,6 +386,7 @@ def _box_to_dict(box: kdb.DBox) -> dict[str, float]:
 
 
 def _rule_counts(markers: list[dict[str, Any]]) -> dict[str, int]:
+    """Count markers by DRC rule name."""
     counts: dict[str, int] = {}
     for marker in markers:
         rule = str(marker["rule"])
@@ -352,6 +395,7 @@ def _rule_counts(markers: list[dict[str, Any]]) -> dict[str, int]:
 
 
 def _normalize_crop_size(crop_size_um: dict[str, float] | None) -> dict[str, float]:
+    """Validate and normalize marker crop size in microns."""
     raw = crop_size_um or DEFAULT_CROP_SIZE_UM
     width = float(raw["x"])
     height = float(raw["y"])
@@ -365,6 +409,7 @@ def _normalize_crop_size(crop_size_um: dict[str, float] | None) -> dict[str, flo
 
 
 def _crop_box(box_um: dict[str, float], crop_size_um: dict[str, float]) -> dict[str, float]:
+    """Expand a marker box to the requested crop window."""
     left = float(box_um["left"])
     bottom = float(box_um["bottom"])
     right = float(box_um["right"])
@@ -388,6 +433,7 @@ def _render_crop(
     box_um: dict[str, float],
     output_path: Path,
 ) -> None:
+    """Render one marker crop from the exported layout copy."""
     view = klay.LayoutView()
     cellview_index = view.load_layout(str(layout_path))
     view.add_missing_layers()
@@ -410,6 +456,7 @@ def _render_crop(
 
 
 def _artifact(kind: str, path: Path, media_type: str) -> dict[str, str]:
+    """Return a standard artifact descriptor for a generated file."""
     return {
         "kind": kind,
         "path": str(path.resolve()),
