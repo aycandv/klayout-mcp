@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
+## [0.1.5](https://github.com/aycandv/klayout-mcp/compare/v0.1.4...v0.1.5) (2026-03-06)
+
+
+### Documentation
+
+* add Read the Docs site ([11570b6](https://github.com/aycandv/klayout-mcp/commit/11570b6e4da1f49c3443f13ec35c2b1e1f68d357))
+* add readthedocs site ([9fd1708](https://github.com/aycandv/klayout-mcp/commit/9fd1708e32a19adb19e19cad80166f8a0f84a0ed))
+
 ## [0.1.4](https://github.com/aycandv/klayout-mcp/compare/v0.1.3...v0.1.4) (2026-03-06)
 
 
