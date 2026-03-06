@@ -53,8 +53,8 @@ def test_release_please_config_matches_current_python_package_version():
     manifest = json.loads(Path(".release-please-manifest.json").read_text())
 
     assert config["packages"]["."]["release-type"] == "python"
-    assert config["packages"]["."]["package-name"] == "klayout-mcp"
     assert config["packages"]["."]["changelog-path"] == "CHANGELOG.md"
+    assert "package-name" not in config["packages"]["."]
     assert manifest["."] == version
 
 
