@@ -55,7 +55,7 @@ def analyze_waveguide(*, runtime: dict[str, Any], target_id: str, dbu: float) ->
         "bend_radius_estimate_um": None if bend_radius_dbu is None else round(bend_radius_dbu * dbu, 6),
         "orientation": orientation,
         "is_path": True,
-        "is_axis_aligned": orientation in {"horizontal", "vertical"},
+        "is_axis_aligned": _is_axis_aligned(target.points_dbu),
         "analysis_warnings": [],
     }
 
@@ -99,3 +99,14 @@ def _orientation(points: tuple[tuple[int, int], ...]) -> str:
     if all(delta_x == 0 for delta_x, _ in deltas):
         return "vertical"
     return "mixed"
+
+
+def _is_axis_aligned(points: tuple[tuple[int, int], ...]) -> bool:
+    """Return whether every segment is horizontal or vertical."""
+    if len(points) < 2:
+        return False
+
+    return all(delta_x == 0 or delta_y == 0 for delta_x, delta_y in (
+        (end[0] - start[0], end[1] - start[1])
+        for start, end in zip(points, points[1:], strict=False)
+    ))

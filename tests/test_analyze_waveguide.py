@@ -39,7 +39,7 @@ async def test_analyze_waveguide_reports_bend_characteristics(mcp_client, querie
 
     assert result["kind"] == "path"
     assert result["is_path"] is True
-    assert result["is_axis_aligned"] is False
+    assert result["is_axis_aligned"] is True
     assert result["orientation"] == "mixed"
     assert result["path_width_um"] == pytest.approx(0.5)
     assert result["segment_length_um"] == pytest.approx(24.0)
