@@ -420,6 +420,36 @@ Run lint:
 ./.venv/bin/python -m ruff check .
 ```
 
+## CI And Releases
+
+Baseline GitHub Actions workflows are included:
+
+- `.github/workflows/ci.yml`: runs `ruff`, `pytest`, `uv build`, and `twine check` on pushes to `main` and on pull requests
+- `.github/workflows/release.yml`: manual publish workflow for `testpypi` or `pypi`
+
+The release workflow follows the recommended Trusted Publishing shape:
+
+- build distributions in one job
+- upload them as artifacts
+- publish from a separate job with `id-token: write`
+
+Before the first release, configure GitHub and PyPI/TestPyPI:
+
+1. Create GitHub environments named `testpypi` and `pypi`.
+2. In TestPyPI and PyPI, add a Trusted Publisher for this repository.
+3. Use workflow filename `.github/workflows/release.yml`.
+4. Set the environment name to match the target index, `testpypi` or `pypi`.
+
+Suggested release flow:
+
+1. Update `version` in `pyproject.toml`.
+2. Merge to `main`.
+3. Run the `Release` workflow against `testpypi`.
+4. Verify the published package.
+5. Run the `Release` workflow against `pypi`.
+
+This baseline does not automate changelogs, tags, or semantic version bumps yet.
+
 ## Reference Docs
 
 - [docs/specs/2026-03-05-klayout-observer-mcp-contract.md](docs/specs/2026-03-05-klayout-observer-mcp-contract.md)
