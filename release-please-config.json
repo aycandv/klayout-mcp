@@ -3,7 +3,6 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "package-name": "klayout-mcp",
       "changelog-path": "CHANGELOG.md"
     }
   }
