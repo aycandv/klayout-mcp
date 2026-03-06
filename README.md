@@ -1,5 +1,8 @@
 # klayout-mcp
 
+[![CI](https://github.com/aycandv/klayout-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/aycandv/klayout-mcp/actions/workflows/ci.yml)
+[![Docs](https://readthedocs.org/projects/klayout-mcp/badge/?version=latest)](https://klayout-mcp.readthedocs.io/en/latest/)
+
 Read-only MCP server for KLayout. It opens GDS/OAS layouts, inspects geometry and hierarchy, renders deterministic PNGs, and runs batch DRC with structured JSON output.
 
 ## Install
