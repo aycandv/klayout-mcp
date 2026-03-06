@@ -87,15 +87,16 @@ PRs should include:
 
 Human-readable release notes live in [CHANGELOG.md](CHANGELOG.md).
 
-Release flow:
+Normal release flow:
 
-1. Update `version` in [pyproject.toml](pyproject.toml)
-2. Move `Unreleased` notes into a new version section in [CHANGELOG.md](CHANGELOG.md)
-3. Merge the release changes to `main`
-4. Run the `Release` workflow for `testpypi`
-5. Verify the package from TestPyPI
-6. Run the `Release` workflow for `pypi`
-7. Push the matching tag, for example `v0.1.0`
+1. Merge Conventional Commits to `main`
+2. Wait for `release-please` to open or update the release PR
+3. Review and merge the release PR
+4. The merge creates the version bump, tag, GitHub release, and PyPI publish automatically
+
+For protected branches, configure a `RELEASE_PLEASE_TOKEN` repository secret so the release PR triggers normal pull request CI. Without that token, `release-please` falls back to `github.token`, which may not run PR workflows.
+
+The manual [release.yml](.github/workflows/release.yml) workflow remains available for TestPyPI validation and recovery publishing.
 
 ## Project-Specific Notes
 
