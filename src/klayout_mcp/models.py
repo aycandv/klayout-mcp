@@ -9,17 +9,21 @@ from typing import Any
 
 
 def utc_now() -> datetime:
+    """Return the current UTC timestamp used for session bookkeeping."""
     return datetime.now(tz=UTC)
 
 
 @dataclass(slots=True, frozen=True)
 class MicronBox:
+    """Normalized bounding box stored in micron units."""
+
     left: float
     bottom: float
     right: float
     top: float
 
     def to_dict(self) -> dict[str, float]:
+        """Return the bounding box as a JSON-friendly dictionary."""
         return {
             "left": self.left,
             "bottom": self.bottom,
@@ -30,11 +34,14 @@ class MicronBox:
 
 @dataclass(slots=True, frozen=True)
 class LayerRef:
+    """Stable layer reference used in serialized shape data."""
+
     layer: int
     datatype: int
     name: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        """Return the layer reference as a JSON-friendly dictionary."""
         result: dict[str, Any] = {
             "layer": self.layer,
             "datatype": self.datatype,
@@ -46,6 +53,8 @@ class LayerRef:
 
 @dataclass(slots=True, frozen=True)
 class ShapeRecord:
+    """Session-stable description of a queried geometry object."""
+
     id: str
     kind: str
     cell: str
@@ -60,6 +69,7 @@ class ShapeRecord:
     points_dbu: tuple[tuple[int, int], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the shape record for tool responses."""
         result: dict[str, Any] = {
             "id": self.id,
             "kind": self.kind,
@@ -77,6 +87,8 @@ class ShapeRecord:
 
 @dataclass(slots=True)
 class SessionRecord:
+    """Persistent metadata for one open layout session."""
+
     session_id: str
     artifact_dir: Path
     source_path: Path
@@ -88,9 +100,11 @@ class SessionRecord:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def touch(self, *, when: datetime | None = None) -> None:
+        """Refresh the session access timestamp."""
         self.last_accessed_at = when or utc_now()
 
     def to_json(self) -> dict[str, Any]:
+        """Serialize persisted session metadata for `session.json`."""
         return {
             "session_id": self.session_id,
             "artifact_dir": str(self.artifact_dir),

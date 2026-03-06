@@ -26,6 +26,8 @@ ERROR_CODES = frozenset(
 
 @dataclass(slots=True, frozen=True)
 class ErrorObject:
+    """Wire-format error payload returned by MCP tools."""
+
     code: str
     message: str
     details: dict[str, Any] = field(default_factory=dict)
@@ -35,6 +37,7 @@ class KLayoutMCPError(Exception):
     """Structured application error with a contract-defined code."""
 
     def __init__(self, code: str, message: str, details: dict[str, Any] | None = None) -> None:
+        """Initialize a validated contract error."""
         if code not in ERROR_CODES:
             raise ValueError(f"Unsupported error code: {code}")
         super().__init__(message)
@@ -43,4 +46,5 @@ class KLayoutMCPError(Exception):
         self.details = details or {}
 
     def to_error_object(self) -> ErrorObject:
+        """Convert the exception into the contract error payload."""
         return ErrorObject(code=self.code, message=self.message, details=self.details)

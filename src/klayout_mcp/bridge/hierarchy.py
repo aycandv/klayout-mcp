@@ -11,6 +11,15 @@ from klayout_mcp.errors import KLayoutMCPError
 
 
 def list_cells(layout: kdb.Layout, max_depth: int | None = None) -> list[dict[str, Any]]:
+    """Return sorted cell summaries for the loaded layout.
+
+    Args:
+        layout: Loaded KLayout database.
+        max_depth: Reserved hierarchy depth parameter for contract compatibility.
+
+    Returns:
+        list[dict[str, Any]]: Deterministically sorted cell summaries.
+    """
     top_names = {cell.name for cell in layout.top_cells()}
     cells = []
     for cell in sorted(layout.each_cell(), key=lambda item: item.name):
@@ -27,6 +36,19 @@ def list_cells(layout: kdb.Layout, max_depth: int | None = None) -> list[dict[st
 
 
 def describe_cell(layout: kdb.Layout, cell_name: str, depth: int = 1) -> dict[str, Any]:
+    """Describe one cell, including instances, labels, and per-layer counts.
+
+    Args:
+        layout: Loaded KLayout database.
+        cell_name: Name of the cell to inspect.
+        depth: Recursive instance depth to include.
+
+    Returns:
+        dict[str, Any]: Structured description of the requested cell.
+
+    Raises:
+        KLayoutMCPError: If the requested cell does not exist.
+    """
     cell = layout.cell(cell_name)
     if cell is None:
         raise KLayoutMCPError(
@@ -47,10 +69,12 @@ def describe_cell(layout: kdb.Layout, cell_name: str, depth: int = 1) -> dict[st
 
 
 def _shape_count(layout: kdb.Layout, cell: kdb.Cell) -> int:
+    """Count all shapes present directly on a cell across layout layers."""
     return sum(cell.shapes(layer_index).size() for layer_index in layout.layer_indices())
 
 
 def _shape_counts_by_layer(layout: kdb.Layout, cell: kdb.Cell) -> list[dict[str, Any]]:
+    """Return non-zero direct shape counts grouped by layer."""
     counts: list[dict[str, Any]] = []
     for layer_index in layout.layer_indices():
         shape_count = cell.shapes(layer_index).size()
@@ -69,6 +93,7 @@ def _shape_counts_by_layer(layout: kdb.Layout, cell: kdb.Cell) -> list[dict[str,
 
 
 def _collect_labels(layout: kdb.Layout, cell: kdb.Cell) -> list[dict[str, Any]]:
+    """Collect text labels placed directly on a cell."""
     labels: list[dict[str, Any]] = []
     for layer_index in layout.layer_indices():
         info = layout.get_info(layer_index)
@@ -96,6 +121,7 @@ def _collect_labels(layout: kdb.Layout, cell: kdb.Cell) -> list[dict[str, Any]]:
 
 
 def _collect_instances(cell: kdb.Cell, depth: int) -> list[dict[str, Any]]:
+    """Collect instance metadata recursively up to the requested depth."""
     if depth <= 0:
         return []
 
