@@ -10,6 +10,13 @@ The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
 - Nothing yet.
 
+## [0.1.1] - 2026-03-06
+
+### Changed
+
+- Removed layout and DRC path allowlist restrictions from the runtime and contract
+- Simplified MCP client setup by removing the allowlist environment variables from docs and examples
+
 ## [0.1.0] - 2026-03-06
 
 ### Added
