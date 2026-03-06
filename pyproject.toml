@@ -19,6 +19,7 @@ klayout-mcp = "klayout_mcp.server:main"
 
 [project.optional-dependencies]
 dev = [
+  "pre-commit>=4.2.0,<5",
   "pytest>=9.0.2,<10",
   "pytest-cov>=7.0.0,<8",
   "ruff>=0.15.5,<0.16",

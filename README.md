@@ -73,7 +73,7 @@ For MCP client configuration, this README uses `uvx` because that is the most co
 For unreleased builds or local development:
 
 ```bash
-uv sync --dev
+uv sync --extra dev
 ```
 
 ## Quick Start
@@ -119,6 +119,34 @@ For a local source checkout, use:
 command: uv
 args:    --directory /abs/path/to/klayout-mcp run klayout-mcp
 ```
+
+## Commit Conventions
+
+This repo uses Conventional Commits and checks them in two places:
+
+- locally with `pre-commit` on the `commit-msg` hook
+- in GitHub Actions on every push and pull request
+
+Install the local hook once in a source checkout:
+
+```bash
+uv sync --extra dev
+uv run pre-commit install --hook-type commit-msg --install-hooks
+```
+
+Allowed commit types:
+
+- `build`
+- `chore`
+- `ci`
+- `docs`
+- `feat`
+- `fix`
+- `perf`
+- `refactor`
+- `revert`
+- `style`
+- `test`
 
 ## Client Setup
 

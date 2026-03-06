@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -31,6 +33,37 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+
+      - name: Validate commit messages
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            from_sha="${{ github.event.pull_request.base.sha }}"
+            to_sha="${{ github.event.pull_request.head.sha }}"
+          else
+            from_sha="${{ github.event.before }}"
+            to_sha="${{ github.sha }}"
+          fi
+
+          if [[ -z "${from_sha}" || "${from_sha}" == "0000000000000000000000000000000000000000" ]]; then
+            mapfile -t commit_shas < <(git rev-list --reverse "${to_sha}" --not --all)
+            if [[ ${#commit_shas[@]} -eq 0 ]]; then
+              commit_shas=("${to_sha}")
+            fi
+          else
+            mapfile -t commit_shas < <(git rev-list --reverse "${from_sha}..${to_sha}")
+          fi
+
+          for sha in "${commit_shas[@]}"; do
+            commit_msg_file="$(mktemp)"
+            git log --format=%B -n 1 "${sha}" > "${commit_msg_file}"
+            uvx conventional-pre-commit --verbose \
+              build chore ci docs feat fix perf refactor revert style test \
+              "${commit_msg_file}"
+            rm -f "${commit_msg_file}"
+          done
 
       - name: Sync dependencies
         run: uv sync --extra dev
