@@ -38,9 +38,10 @@ If you use batch DRC, make sure the `klayout` executable is on `PATH` or exporte
 3. `list_cells` or `describe_cell`
 4. `query_region`
 5. `measure_geometry`
-6. `render_view`
-7. `run_drc_script`
-8. `extract_markers`
-9. `close_session`
+6. `analyze_waveguide`
+7. `render_view`
+8. `run_drc_script`
+9. `extract_markers`
+10. `close_session`
 
 Continue with [Getting Started](getting-started.md) for the shortest local setup path, or jump to [MCP Clients](clients.md) for Codex, Claude Code, Cursor, and OpenCode examples.

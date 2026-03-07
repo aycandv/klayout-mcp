@@ -4,7 +4,7 @@
 
 - Session: `open_layout`, `close_session`
 - Structure: `list_layers`, `list_cells`, `describe_cell`
-- Geometry: `query_region`, `measure_geometry`
+- Geometry: `query_region`, `measure_geometry`, `analyze_waveguide`
 - View: `set_view`, `render_view`
 - DRC: `run_drc_script`, `extract_markers`
 
