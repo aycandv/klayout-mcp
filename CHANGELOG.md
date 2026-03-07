@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
+## [0.2.1](https://github.com/aycandv/klayout-mcp/compare/v0.2.0...v0.2.1) (2026-03-07)
+
+
+### Documentation
+
+* default docs site to dark mode ([243e4c5](https://github.com/aycandv/klayout-mcp/commit/243e4c53bc546475168797e812064a7f548a6ae6))
+* default docs site to dark mode ([53c1a2c](https://github.com/aycandv/klayout-mcp/commit/53c1a2cd0b676945dea15168ff6655cbeb77bdb9))
+
 ## [0.2.0](https://github.com/aycandv/klayout-mcp/compare/v0.1.6...v0.2.0) (2026-03-06)
 
 
