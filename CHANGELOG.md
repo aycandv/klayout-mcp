@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
+## [0.2.2](https://github.com/aycandv/klayout-mcp/compare/v0.2.1...v0.2.2) (2026-03-09)
+
+
+### Bug Fixes
+
+* pin klayout to 0.30.6 ([80e3d85](https://github.com/aycandv/klayout-mcp/commit/80e3d85544dfa54bbb22e17b4949aee5d64efe95))
+* render actual geometry in render_view ([6fa239c](https://github.com/aycandv/klayout-mcp/commit/6fa239c07b07ed7de1ba708b50aebabe829ed675))
+* render actual geometry in render_view ([5193b91](https://github.com/aycandv/klayout-mcp/commit/5193b9197e61c749aad0db3424f8c0626b5cdec1))
+
 ## [0.2.1](https://github.com/aycandv/klayout-mcp/compare/v0.2.0...v0.2.1) (2026-03-07)
 
 
