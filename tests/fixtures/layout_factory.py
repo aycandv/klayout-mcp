@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import pow
 from pathlib import Path
 
 import klayout.db as kdb
@@ -43,6 +44,25 @@ def build_bend_fixture(root: Path) -> GeneratedLayoutFixture:
         )
     )
     return _write_fixture(root, "bend", layout, top, (WG_LAYER,))
+
+
+def build_curve_inspection_fixture(root: Path) -> GeneratedLayoutFixture:
+    layout = _new_layout()
+    arc = layout.create_cell("ARC")
+    wg = layout.layer(*WG_LAYER)
+    arc.shapes(wg).insert(kdb.DPolygon.ellipse(kdb.DBox(0.0, 0.0, 10.0, 4.0), 64))
+
+    top = layout.create_cell("TOP")
+    top.insert(kdb.DCellInstArray(arc.cell_index(), kdb.DCplxTrans(1.0, 0.0, False, 200.0, 0.0)))
+    return _write_fixture(root, "curve_inspection", layout, top, (WG_LAYER,))
+
+
+def build_polygon_profile_fixture(root: Path) -> GeneratedLayoutFixture:
+    layout = _new_layout()
+    top = layout.create_cell("TOP")
+    wg = layout.layer(*WG_LAYER)
+    top.shapes(wg).insert(kdb.DPolygon(_polygon_profile_points()))
+    return _write_fixture(root, "polygon_profile", layout, top, (WG_LAYER,))
 
 
 def build_directional_coupler_fixture(root: Path) -> GeneratedLayoutFixture:
@@ -102,6 +122,8 @@ def build_violation_fixture(root: Path) -> GeneratedLayoutFixture:
 
 def build_all_fixtures(root: Path) -> dict[str, GeneratedLayoutFixture]:
     return {
+        "curve_inspection": build_curve_inspection_fixture(root),
+        "polygon_profile": build_polygon_profile_fixture(root),
         "waveguide": build_waveguide_fixture(root),
         "bend": build_bend_fixture(root),
         "directional_coupler": build_directional_coupler_fixture(root),
@@ -116,6 +138,22 @@ def _new_layout() -> kdb.Layout:
     layout = kdb.Layout()
     layout.dbu = DBU
     return layout
+
+
+def _polygon_profile_points() -> list[kdb.DPoint]:
+    """Build an asymmetric curved polygon profile for render regression tests."""
+    width = 0.45
+    segments = 48
+    lower_points: list[kdb.DPoint] = []
+    upper_points: list[kdb.DPoint] = []
+    for index in range(segments + 1):
+        t = index / segments
+        x = 7.725 * t
+        lower_y = (7.05 * pow(t, 4)) - 0.225
+        upper_y = lower_y + width
+        lower_points.append(kdb.DPoint(x, lower_y))
+        upper_points.append(kdb.DPoint(x, upper_y))
+    return lower_points + list(reversed(upper_points))
 
 
 def _write_fixture(
