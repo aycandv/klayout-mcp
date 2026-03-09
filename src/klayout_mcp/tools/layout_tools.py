@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from klayout_mcp.bridge.analyze import analyze_waveguide
 from klayout_mcp.bridge.drc import extract_markers, run_drc_script
 from klayout_mcp.bridge.hierarchy import describe_cell, list_cells
 from klayout_mcp.bridge.layout_loader import LayerSummary, load_layout
@@ -140,6 +141,17 @@ class LayoutTools:
             runtime=runtime,
             mode=mode,
             target_ids=target_ids,
+            dbu=float(runtime["layout"].dbu),
+        )
+        result["session_id"] = session_id
+        return result
+
+    def analyze_waveguide(self, session_id: str, target_id: str) -> dict[str, Any]:
+        """Analyze one queried path target and return waveguide-specific metrics."""
+        runtime = self._require_runtime(session_id)
+        result = analyze_waveguide(
+            runtime=runtime,
+            target_id=target_id,
             dbu=float(runtime["layout"].dbu),
         )
         result["session_id"] = session_id

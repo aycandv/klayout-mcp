@@ -8,4 +8,5 @@ async def test_build_server_exposes_expected_tool_names():
     server = build_server()
     tool_names = {tool.name for tool in await server.list_tools()}
     assert "open_layout" in tool_names
+    assert "analyze_waveguide" in tool_names
     assert "render_view" in tool_names

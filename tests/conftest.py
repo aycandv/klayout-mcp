@@ -21,6 +21,7 @@ if str(SRC) not in sys.path:
 
 from klayout_mcp.server import build_server
 from tests.fixtures.layout_factory import (
+    build_bend_fixture,
     build_curve_inspection_fixture,
     build_dense_fixture,
     build_directional_coupler_fixture,
@@ -80,6 +81,11 @@ def generated_curve_inspection_layout(tmp_path: Path):
 @pytest.fixture
 def generated_polygon_profile_layout(tmp_path: Path):
     return build_polygon_profile_fixture(tmp_path)
+
+
+@pytest.fixture
+def generated_bend_layout(tmp_path: Path):
+    return build_bend_fixture(tmp_path)
 
 
 @pytest.fixture
@@ -145,6 +151,12 @@ async def opened_polygon_profile_session(
 
 
 @pytest.fixture
+async def opened_bend_session(mcp_client: MCPClient, generated_bend_layout) -> str:
+    result = await mcp_client.call("open_layout", {"path": str(generated_bend_layout.path)})
+    return result["session_id"]
+
+
+@pytest.fixture
 async def opened_coupler_session(mcp_client: MCPClient, generated_coupler_layout) -> str:
     result = await mcp_client.call("open_layout", {"path": str(generated_coupler_layout.path)})
     return result["session_id"]
@@ -196,6 +208,18 @@ async def queried_waveguide_region(mcp_client: MCPClient, opened_session) -> dic
         {
             "session_id": opened_session,
             "box": {"left": 0.0, "bottom": -5.0, "right": 50.0, "top": 5.0},
+            "hierarchy_mode": "recursive",
+        },
+    )
+
+
+@pytest.fixture
+async def queried_bend_region(mcp_client: MCPClient, opened_bend_session) -> dict[str, object]:
+    return await mcp_client.call(
+        "query_region",
+        {
+            "session_id": opened_bend_session,
+            "box": {"left": 0.0, "bottom": -5.0, "right": 20.0, "top": 20.0},
             "hierarchy_mode": "recursive",
         },
     )

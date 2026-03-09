@@ -464,6 +464,56 @@ For `overlap`, return:
 - `value_um`: overlapping area in square microns
 - `value_dbu`: overlapping area in square dbu
 
+### `analyze_waveguide`
+
+Request:
+
+```json
+{
+  "session_id": "ses_a1b2c3d4e5f6",
+  "target_id": "shp_a"
+}
+```
+
+`target_id` must refer to a previously queried path shape. v1 is intentionally limited to path-backed waveguide geometry and does not infer ports or labels.
+
+Response:
+
+```json
+{
+  "session_id": "ses_a1b2c3d4e5f6",
+  "target_id": "shp_a",
+  "kind": "path",
+  "cell": "TOP",
+  "layer": {
+    "layer": 1,
+    "datatype": 0,
+    "name": "WG"
+  },
+  "bbox_um": {
+    "left": 0.0,
+    "bottom": -0.25,
+    "right": 40.0,
+    "top": 0.25
+  },
+  "center_um": {
+    "x": 20.0,
+    "y": 0.0
+  },
+  "path_width_um": 0.5,
+  "segment_length_um": 40.0,
+  "bend_radius_estimate_um": null,
+  "orientation": "horizontal",
+  "is_path": true,
+  "is_axis_aligned": true,
+  "analysis_warnings": []
+}
+```
+
+Errors:
+
+- `INVALID_TARGET`: target id is missing or does not refer to a path shape
+
 ### `set_view`
 
 Request:

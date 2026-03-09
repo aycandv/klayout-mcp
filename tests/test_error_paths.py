@@ -25,3 +25,15 @@ async def test_disallowed_drc_script_returns_contract_error_code(mcp_client, ope
         },
     )
     assert result["code"] == "FILE_NOT_FOUND"
+
+
+@pytest.mark.anyio
+async def test_analyze_waveguide_rejects_unknown_target_id(mcp_client, opened_session):
+    result = await mcp_client.call_expect_error(
+        "analyze_waveguide",
+        {
+            "session_id": opened_session,
+            "target_id": "shp_missing",
+        },
+    )
+    assert result["code"] == "INVALID_TARGET"

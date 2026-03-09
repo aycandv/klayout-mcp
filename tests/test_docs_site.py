@@ -29,6 +29,17 @@ def test_readthedocs_and_mkdocs_configs_exist():
     assert "nav:" in mkdocs_text
 
 
+def test_mkdocs_theme_defaults_to_dark_mode_with_palette_toggle():
+    mkdocs_text = Path("mkdocs.yml").read_text()
+
+    assert "theme:" in mkdocs_text
+    assert "palette:" in mkdocs_text
+    assert '- scheme: slate' in mkdocs_text
+    assert "name: Switch to light mode" in mkdocs_text
+    assert '- scheme: default' in mkdocs_text
+    assert "name: Switch to dark mode" in mkdocs_text
+
+
 def test_docs_site_has_expected_core_pages():
     expected_pages = [
         Path("docs/index.md"),

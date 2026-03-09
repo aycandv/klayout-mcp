@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
+## [0.2.1](https://github.com/aycandv/klayout-mcp/compare/v0.2.0...v0.2.1) (2026-03-07)
+
+
+### Documentation
+
+* default docs site to dark mode ([243e4c5](https://github.com/aycandv/klayout-mcp/commit/243e4c53bc546475168797e812064a7f548a6ae6))
+* default docs site to dark mode ([53c1a2c](https://github.com/aycandv/klayout-mcp/commit/53c1a2cd0b676945dea15168ff6655cbeb77bdb9))
+
+## [0.2.0](https://github.com/aycandv/klayout-mcp/compare/v0.1.6...v0.2.0) (2026-03-06)
+
+
+### Features
+
+* add waveguide analysis tool ([1f9fc81](https://github.com/aycandv/klayout-mcp/commit/1f9fc81e1df603c9d94a17f422915ae2b9cbb823))
+* add waveguide analysis tool ([480da58](https://github.com/aycandv/klayout-mcp/commit/480da58414695f1cace85f05a005e29fb6bfcc45))
+
+
+### Bug Fixes
+
+* classify Manhattan bends as axis aligned ([f5f4d3c](https://github.com/aycandv/klayout-mcp/commit/f5f4d3c816bab5cd448a30d6aec63fa3fd6a7d3b))
+
+## [0.1.6](https://github.com/aycandv/klayout-mcp/compare/v0.1.5...v0.1.6) (2026-03-06)
+
+
+### Documentation
+
+* add status badges ([fb39ff9](https://github.com/aycandv/klayout-mcp/commit/fb39ff9eb6487bb110ef76ea5a1bcf6fa643ef85))
+
 ## [0.1.5](https://github.com/aycandv/klayout-mcp/compare/v0.1.4...v0.1.5) (2026-03-06)
 
 
