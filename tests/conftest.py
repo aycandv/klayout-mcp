@@ -22,10 +22,12 @@ if str(SRC) not in sys.path:
 from klayout_mcp.server import build_server
 from tests.fixtures.layout_factory import (
     build_bend_fixture,
+    build_curve_inspection_fixture,
     build_dense_fixture,
     build_directional_coupler_fixture,
     build_hierarchical_fixture,
     build_label_fixture,
+    build_polygon_profile_fixture,
     build_violation_fixture,
     build_waveguide_fixture,
 )
@@ -72,6 +74,16 @@ def generated_dense_layout(tmp_path: Path):
 
 
 @pytest.fixture
+def generated_curve_inspection_layout(tmp_path: Path):
+    return build_curve_inspection_fixture(tmp_path)
+
+
+@pytest.fixture
+def generated_polygon_profile_layout(tmp_path: Path):
+    return build_polygon_profile_fixture(tmp_path)
+
+
+@pytest.fixture
 def generated_bend_layout(tmp_path: Path):
     return build_bend_fixture(tmp_path)
 
@@ -111,6 +123,30 @@ async def opened_session(mcp_client: MCPClient, generated_layout) -> str:
 @pytest.fixture
 async def opened_dense_session(mcp_client: MCPClient, generated_dense_layout) -> str:
     result = await mcp_client.call("open_layout", {"path": str(generated_dense_layout.path)})
+    return result["session_id"]
+
+
+@pytest.fixture
+async def opened_curve_inspection_session(
+    mcp_client: MCPClient,
+    generated_curve_inspection_layout,
+) -> str:
+    result = await mcp_client.call(
+        "open_layout",
+        {"path": str(generated_curve_inspection_layout.path)},
+    )
+    return result["session_id"]
+
+
+@pytest.fixture
+async def opened_polygon_profile_session(
+    mcp_client: MCPClient,
+    generated_polygon_profile_layout,
+) -> str:
+    result = await mcp_client.call(
+        "open_layout",
+        {"path": str(generated_polygon_profile_layout.path)},
+    )
     return result["session_id"]
 
 
