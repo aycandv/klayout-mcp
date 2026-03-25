@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
+## [0.2.3](https://github.com/aycandv/klayout-mcp/compare/v0.2.2...v0.2.3) (2026-03-25)
+
+
+### Documentation
+
+* add render follow-up plans and dark-style regression ([a86fa41](https://github.com/aycandv/klayout-mcp/commit/a86fa417c96fe00ecf1ca1a5ef6781fb46ec3c91))
+* add render follow-up plans and dark-style regression ([f4e0ab9](https://github.com/aycandv/klayout-mcp/commit/f4e0ab986e269dc7e79865a2ea2e7a7847249312))
+
 ## [0.2.2](https://github.com/aycandv/klayout-mcp/compare/v0.2.1...v0.2.2) (2026-03-09)
 
 
