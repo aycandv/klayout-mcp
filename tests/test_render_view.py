@@ -119,3 +119,21 @@ async def test_render_view_draws_polygon_geometry_not_cell_bbox(
     image_path = Path(result["image"]["path"])
     assert _pixel(image_path, 0.70, 0.75) != (255, 255, 255)
     assert _pixel(image_path, 0.10, 0.10) == (255, 255, 255)
+
+
+@pytest.mark.anyio
+async def test_render_view_dark_style_uses_dark_background(
+    mcp_client,
+    opened_polygon_profile_session,
+):
+    result = await mcp_client.call(
+        "render_view",
+        {
+            "session_id": opened_polygon_profile_session,
+            "cell": "TOP",
+            "image_size": {"width": 400, "height": 200},
+            "style": "dark",
+        },
+    )
+
+    assert _pixel(Path(result["image"]["path"]), 0.05, 0.05) == (0, 0, 0)
