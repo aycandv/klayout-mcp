@@ -7,11 +7,14 @@ def _workflow_text(name: str) -> str:
     return Path(".github/workflows", name).read_text()
 
 
+SELF_HOSTED_RUNNER = "runs-on: [self-hosted, linux, ARM64, kevipi]"
+
+
 def test_ci_workflow_runs_lint_tests_and_build_on_push_and_pr():
     text = _workflow_text("ci.yml")
     assert "pull_request:" in text
     assert "push:" in text
-    assert "uv sync --extra dev" in text
+    assert "uv sync --python 3.12 --extra dev" in text
     assert "uv run ruff check ." in text
     assert "uv run pytest -q" in text
     assert "uv run --extra docs mkdocs build --strict" in text
@@ -19,12 +22,28 @@ def test_ci_workflow_runs_lint_tests_and_build_on_push_and_pr():
     assert "uvx twine check dist/*" in text
 
 
+def test_all_workflows_target_the_kevipi_self_hosted_runner():
+    for workflow_name in ("ci.yml", "release-please.yml", "release.yml"):
+        text = _workflow_text(workflow_name)
+        assert SELF_HOSTED_RUNNER in text
+        assert "ubuntu-latest" not in text
+
+
+def test_python_workflows_use_uv_managed_python_on_kevipi():
+    for workflow_name in ("ci.yml", "release.yml"):
+        text = _workflow_text(workflow_name)
+        assert "astral-sh/setup-uv@v7" in text
+        assert "uv python install 3.12" in text
+        assert "uv sync --python 3.12 --extra dev" in text
+        assert "actions/setup-python" not in text
+
+
 def test_release_workflow_uses_separate_build_and_trusted_publish_jobs():
     text = _workflow_text("release.yml")
     assert "workflow_dispatch:" in text
     assert "release:" in text
     assert "published" in text
-    assert "uv sync --extra dev" in text
+    assert "uv sync --python 3.12 --extra dev" in text
     assert "actions/upload-artifact" in text
     assert "actions/download-artifact" in text
     assert "id-token: write" in text
