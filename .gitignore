@@ -1,4 +1,5 @@
 .artifacts/
+.worktrees/
 .local-docs/
 .pytest_cache/
 .ruff_cache/
