@@ -7,6 +7,9 @@ def _workflow_text(name: str) -> str:
     return Path(".github/workflows", name).read_text()
 
 
+SELF_HOSTED_RUNNER = "runs-on: [self-hosted, linux, ARM64, kevipi]"
+
+
 def test_ci_workflow_runs_lint_tests_and_build_on_push_and_pr():
     text = _workflow_text("ci.yml")
     assert "pull_request:" in text
@@ -17,6 +20,13 @@ def test_ci_workflow_runs_lint_tests_and_build_on_push_and_pr():
     assert "uv run --extra docs mkdocs build --strict" in text
     assert "uv build" in text
     assert "uvx twine check dist/*" in text
+
+
+def test_all_workflows_target_the_kevipi_self_hosted_runner():
+    for workflow_name in ("ci.yml", "release-please.yml", "release.yml"):
+        text = _workflow_text(workflow_name)
+        assert SELF_HOSTED_RUNNER in text
+        assert "ubuntu-latest" not in text
 
 
 def test_release_workflow_uses_separate_build_and_trusted_publish_jobs():

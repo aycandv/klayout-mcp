@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64, kevipi]
 
     steps:
       - name: Run release-please

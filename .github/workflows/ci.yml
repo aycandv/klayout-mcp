@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64, kevipi]
     timeout-minutes: 20
 
     steps:

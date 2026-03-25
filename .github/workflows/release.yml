@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64, kevipi]
     timeout-minutes: 20
 
     steps:
@@ -61,7 +61,7 @@ jobs:
 
   publish:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64, kevipi]
     environment:
       name: ${{ github.event_name == 'release' && 'pypi' || inputs.repository }}
     permissions:

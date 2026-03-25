@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -14,7 +15,6 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
-KLAYOUT_BIN = Path("/Applications/klayout.app/Contents/MacOS/klayout")
 
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
@@ -55,11 +55,34 @@ class MCPClient:
         return result
 
 
+def _which_klayout() -> str | None:
+    """Return the first `klayout` executable found on PATH."""
+    return shutil.which("klayout")
+
+
+def _resolve_test_klayout_bin() -> Path | None:
+    """Resolve the KLayout batch binary used by integration tests."""
+    configured = os.getenv("KLAYOUT_BIN")
+    if configured:
+        return Path(configured).expanduser()
+
+    discovered = _which_klayout()
+    if discovered:
+        return Path(discovered)
+
+    macos_bundle = Path("/Applications/klayout.app/Contents/MacOS/klayout")
+    if macos_bundle.exists():
+        return macos_bundle
+
+    return None
+
+
 @pytest.fixture
 def mcp_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> MCPClient:
     monkeypatch.setenv("KLAYOUT_MCP_ARTIFACT_ROOT", str(tmp_path / ".artifacts"))
-    if KLAYOUT_BIN.exists():
-        monkeypatch.setenv("KLAYOUT_BIN", str(KLAYOUT_BIN))
+    klayout_bin = _resolve_test_klayout_bin()
+    if klayout_bin is not None:
+        monkeypatch.setenv("KLAYOUT_BIN", str(klayout_bin))
     return MCPClient()
 
 
@@ -176,7 +199,7 @@ async def opened_label_session(mcp_client: MCPClient, generated_label_layout) ->
 
 @pytest.fixture
 def drc_script(tmp_path: Path) -> Path:
-    if not KLAYOUT_BIN.exists():
+    if _resolve_test_klayout_bin() is None:
         pytest.skip("KLayout batch binary is not available")
 
     source = ROOT / "tests" / "fixtures" / "drc" / "min_space.drc"
