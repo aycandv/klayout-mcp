@@ -3,7 +3,14 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "uv.lock",
+          "jsonpath": "$.package[?(@.name.value=='klayout-mcp')].version"
+        }
+      ]
     }
   }
 }
