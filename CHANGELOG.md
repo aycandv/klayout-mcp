@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format follows Keep a Changelog, and versions use SemVer in PEP 440 form.
 
+## [0.3.0](https://github.com/aycandv/klayout-mcp/compare/v0.2.3...v0.3.0) (2026-09-25)
+
+
+### Features
+
+* complete list_cells depth, render annotations, and query text limits ([755c845](https://github.com/aycandv/klayout-mcp/commit/755c84555f2b30d5b81619c34039c03c91a68f14))
+
+
+### Bug Fixes
+
+* keep issued shape IDs valid for the whole session ([602f15c](https://github.com/aycandv/klayout-mcp/commit/602f15c5daa799749254c2196361bec6c978221f))
+
 ## [0.2.3](https://github.com/aycandv/klayout-mcp/compare/v0.2.2...v0.2.3) (2026-03-25)
 
 
