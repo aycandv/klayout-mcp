@@ -8,8 +8,15 @@ from typing import Any
 
 import klayout.db as kdb
 
+from klayout_mcp.bridge.geometry import (
+    micron_box,
+    micron_box_from_box,
+    resolve_layer_indices,
+    shape_kind,
+    transform_shape,
+)
 from klayout_mcp.errors import KLayoutMCPError
-from klayout_mcp.models import LayerRef, MicronBox, ShapeRecord
+from klayout_mcp.models import LayerRef, MicronBox, SessionRuntime, ShapeRecord
 
 
 VALID_HIERARCHY_MODES = {"top", "recursive", "flattened"}
@@ -18,13 +25,14 @@ VALID_HIERARCHY_MODES = {"top", "recursive", "flattened"}
 def query_region(
     *,
     layout: kdb.Layout,
-    runtime: dict[str, Any],
+    runtime: SessionRuntime,
     box: dict[str, float],
     cell_name: str | None = None,
     layers: list[dict[str, int | str]] | None = None,
     hierarchy_mode: str = "recursive",
     max_shapes: int = 200,
     max_instances: int = 100,
+    max_texts: int = 200,
 ) -> dict[str, Any]:
     """Collect shapes, texts, and instances overlapping a query box.
 
@@ -37,6 +45,7 @@ def query_region(
         hierarchy_mode: Query traversal mode.
         max_shapes: Maximum number of shapes to return.
         max_instances: Maximum number of instances to return.
+        max_texts: Maximum number of text labels to return.
 
     Returns:
         dict[str, Any]: Query payload containing shapes, texts, and instances.
@@ -51,7 +60,19 @@ def query_region(
             {"hierarchy_mode": hierarchy_mode},
         )
 
-    query_cell_name = cell_name or runtime["selected_top_cell"]
+    for limit_name, limit_value in (
+        ("max_shapes", max_shapes),
+        ("max_instances", max_instances),
+        ("max_texts", max_texts),
+    ):
+        if limit_value < 0:
+            raise KLayoutMCPError(
+                "INVALID_TARGET",
+                f"{limit_name} must be zero or greater",
+                {limit_name: limit_value},
+            )
+
+    query_cell_name = cell_name or runtime.selected_top_cell
     query_cell = layout.cell(query_cell_name)
     if query_cell is None:
         raise KLayoutMCPError(
@@ -61,7 +82,7 @@ def query_region(
         )
 
     query_box = _dbox_from_input(box)
-    layer_indices = _resolve_layer_indices(layout, layers)
+    layer_indices = resolve_layer_indices(layout, layers)
     shape_records: list[ShapeRecord] = []
     text_records: list[dict[str, Any]] = []
     dbu = float(layout.dbu)
@@ -122,7 +143,7 @@ def query_region(
     instances = _collect_instances(query_cell, query_box)
 
     return {
-        "box_um": _micron_box(query_box),
+        "box_um": micron_box(query_box),
         "cell": query_cell_name,
         "hierarchy_mode": hierarchy_mode,
         "summary": {
@@ -132,11 +153,11 @@ def query_region(
         },
         "shapes": [shape.to_dict() for shape in sorted_shapes[:max_shapes]],
         "instances": instances[:max_instances],
-        "texts": sorted_texts,
+        "texts": sorted_texts[:max_texts],
         "truncation": {
             "shapes_dropped": max(len(sorted_shapes) - max_shapes, 0),
             "instances_dropped": max(len(instances) - max_instances, 0),
-            "texts_dropped": 0,
+            "texts_dropped": max(len(sorted_texts) - max_texts, 0),
         },
     }
 
@@ -150,7 +171,7 @@ def _collect_top_shapes(
     layer_ref: LayerRef,
     query_cell_name: str,
     query_box: kdb.DBox,
-    runtime: dict[str, Any],
+    runtime: SessionRuntime,
     dbu: float,
 ) -> None:
     """Collect directly overlapping shapes from the query cell only."""
@@ -178,14 +199,14 @@ def _collect_recursive_shapes(
     layer_ref: LayerRef,
     query_cell_name: str,
     query_box: kdb.DBox,
-    runtime: dict[str, Any],
+    runtime: SessionRuntime,
     dbu: float,
 ) -> None:
     """Collect overlapping shapes through hierarchical traversal."""
     iterator = cell.begin_shapes_rec_overlapping(layer_index, query_box)
     while not iterator.at_end():
         shape = iterator.shape()
-        transformed_shape = _transform_shape(shape, iterator.trans())
+        transformed_shape = transform_shape(shape, iterator.trans())
         instance_path = [query_cell_name]
         for path_element in iterator.path():
             instance_path.append(path_element.inst().cell.name)
@@ -214,7 +235,7 @@ def _add_shape_or_text(
     query_cell_name: str,
     leaf_cell_name: str,
     instance_path: tuple[str, ...],
-    runtime: dict[str, Any],
+    runtime: SessionRuntime,
     dbu: float,
 ) -> None:
     """Route one queried object into the shape or text result buckets."""
@@ -224,7 +245,7 @@ def _add_shape_or_text(
             {
                 "text": text.string,
                 "layer": layer_ref.to_dict(),
-                "bbox_um": _micron_box_from_box(text.bbox(), dbu),
+                "bbox_um": micron_box_from_box(text.bbox(), dbu),
             }
         )
         return
@@ -239,7 +260,7 @@ def _add_shape_or_text(
         dbu=dbu,
     )
     # Measurements later refer back to shapes by stable IDs from this query pass.
-    runtime.setdefault("shape_refs", {})[record.id] = record
+    runtime.remember_shape(record)
     shape_records.append(record)
 
 
@@ -261,7 +282,7 @@ def _shape_record(
         int(bbox.right),
         int(bbox.top),
     )
-    kind = _shape_kind(shape)
+    kind = shape_kind(shape)
 
     points_dbu: tuple[tuple[int, int], ...] = ()
     point_count: int | None = None
@@ -306,7 +327,7 @@ def _shape_record(
         leaf_cell=leaf_cell_name,
         instance_path=instance_path,
         layer=layer_ref,
-        bbox_um=MicronBox(**_micron_box_from_box(bbox, dbu)),
+        bbox_um=MicronBox(**micron_box_from_box(bbox, dbu)),
         bbox_dbu=bbox_dbu,
         point_count=point_count,
         path_width_um=path_width_um,
@@ -324,7 +345,7 @@ def _collect_instances(cell: kdb.Cell, query_box: kdb.DBox) -> list[dict[str, An
             {
                 "name": f"{cell.name}:{index}",
                 "child_cell": instance.cell.name,
-                "bbox_um": _micron_box(instance.dbbox()),
+                "bbox_um": micron_box(instance.dbbox()),
                 "transform": {
                     "magnification": float(transform.mag),
                     "rotation": float(transform.angle),
@@ -335,37 +356,6 @@ def _collect_instances(cell: kdb.Cell, query_box: kdb.DBox) -> list[dict[str, An
             }
         )
     return instances
-
-
-def _resolve_layer_indices(
-    layout: kdb.Layout,
-    layers: list[dict[str, int | str]] | None,
-) -> list[int]:
-    """Resolve optional layer filters into KLayout layer indexes."""
-    if not layers:
-        return sorted(
-            list(layout.layer_indices()),
-            key=lambda index: (layout.get_info(index).layer, layout.get_info(index).datatype),
-        )
-
-    resolved: list[int] = []
-    for layer in layers:
-        target_layer = int(layer["layer"])
-        target_datatype = int(layer["datatype"])
-        match = None
-        for layer_index in layout.layer_indices():
-            info = layout.get_info(layer_index)
-            if info.layer == target_layer and info.datatype == target_datatype:
-                match = layer_index
-                break
-        if match is None:
-            raise KLayoutMCPError(
-                "INVALID_LAYER",
-                "Requested layer was not found in the layout",
-                {"layer": target_layer, "datatype": target_datatype},
-            )
-        resolved.append(match)
-    return resolved
 
 
 def _dbox_from_input(box: dict[str, float]) -> kdb.DBox:
@@ -381,48 +371,3 @@ def _dbox_from_input(box: dict[str, float]) -> kdb.DBox:
             {"box": box},
         )
     return kdb.DBox(left, bottom, right, top)
-
-
-def _shape_kind(shape: kdb.Shape) -> str:
-    """Return the contract shape kind for a KLayout shape."""
-    if shape.is_path():
-        return "path"
-    if shape.is_box():
-        return "box"
-    if shape.is_polygon():
-        return "polygon"
-    if shape.is_text():
-        return "text"
-    return "shape"
-
-
-def _transform_shape(shape: kdb.Shape, transform: Any) -> Any:
-    """Apply an iterator transform to the current shape payload."""
-    if shape.is_path():
-        return shape.path.transformed(transform)
-    if shape.is_box():
-        return shape.box.transformed(transform)
-    if shape.is_polygon():
-        return shape.polygon.transformed(transform)
-    if shape.is_text():
-        return shape.text.transformed(transform)
-    return shape
-
-def _micron_box(box: kdb.DBox) -> dict[str, float]:
-    """Convert a `DBox` into rounded micron coordinates."""
-    return {
-        "left": round(float(box.left), 6),
-        "bottom": round(float(box.bottom), 6),
-        "right": round(float(box.right), 6),
-        "top": round(float(box.top), 6),
-    }
-
-
-def _micron_box_from_box(box: kdb.Box, dbu: float) -> dict[str, float]:
-    """Convert a database-unit box into rounded micron coordinates."""
-    return {
-        "left": round(float(box.left) * dbu, 6),
-        "bottom": round(float(box.bottom) * dbu, 6),
-        "right": round(float(box.right) * dbu, 6),
-        "top": round(float(box.top) * dbu, 6),
-    }

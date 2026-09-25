@@ -10,7 +10,7 @@
 
 ## Artifacts
 
-Artifacts are stored under `.artifacts/sessions/<session_id>/` and include renders, DRC reports, marker crops, and logs.
+Artifacts are stored under `<artifact root>/sessions/<session_id>/` and include renders, DRC reports, marker crops, and logs. See [Runtime Configuration](getting-started.md#runtime-configuration) for where the artifact root is.
 
 `close_session` removes the session artifact directory.
 

@@ -8,8 +8,10 @@ from pathlib import Path
 
 import klayout.db as kdb
 
+from klayout_mcp.bridge.geometry import dbu_box, micron_box
 from klayout_mcp.config import Settings
 from klayout_mcp.errors import KLayoutMCPError
+from klayout_mcp.models import LayerSummary
 
 SUPPORTED_FORMATS = {
     "gds": "gds",
@@ -17,29 +19,6 @@ SUPPORTED_FORMATS = {
     "oas": "oas",
     "oasis": "oas",
 }
-
-
-@dataclass(slots=True, frozen=True)
-class LayerSummary:
-    """Serializable summary of one layout layer."""
-
-    layer: int
-    datatype: int
-    name: str | None
-    visible: bool
-    shape_count: int
-
-    def to_response(self) -> dict[str, object]:
-        """Return the layer summary in tool-response form."""
-        response: dict[str, object] = {
-            "layer": self.layer,
-            "datatype": self.datatype,
-            "visible": self.visible,
-            "shape_count": self.shape_count,
-        }
-        if self.name:
-            response["name"] = self.name
-        return response
 
 
 @dataclass(slots=True)
@@ -124,8 +103,8 @@ def load_layout(
         top_cells=top_cells,
         selected_top_cell=selected_top_cell,
         dbu=round(layout.dbu, 6),
-        bbox_um=_micron_box(selected_cell.dbbox()),
-        bbox_dbu=_dbu_box(selected_cell.bbox()),
+        bbox_um=micron_box(selected_cell.dbbox()),
+        bbox_dbu=dbu_box(selected_cell.bbox()),
         layers=_collect_layers(layout),
     )
 
@@ -176,23 +155,3 @@ def _collect_layers(layout: kdb.Layout) -> list[LayerSummary]:
         )
 
     return sorted(summaries, key=lambda item: (item.layer, item.datatype))
-
-
-def _micron_box(box: kdb.DBox) -> dict[str, float]:
-    """Convert a KLayout `DBox` into rounded micron coordinates."""
-    return {
-        "left": round(box.left, 6),
-        "bottom": round(box.bottom, 6),
-        "right": round(box.right, 6),
-        "top": round(box.top, 6),
-    }
-
-
-def _dbu_box(box: kdb.Box) -> dict[str, int]:
-    """Convert a KLayout `Box` into integer database-unit coordinates."""
-    return {
-        "left": int(box.left),
-        "bottom": int(box.bottom),
-        "right": int(box.right),
-        "top": int(box.top),
-    }

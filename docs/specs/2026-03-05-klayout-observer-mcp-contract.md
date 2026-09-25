@@ -22,7 +22,7 @@ This document is the normative handoff contract for the MVP implementation. If t
 Support these environment variables:
 
 - `KLAYOUT_MCP_ARTIFACT_ROOT`
-  - Default: `<repo>/.artifacts`
+  - Default: `<repo>/.artifacts` in a source checkout, otherwise the per-user cache directory (`~/.cache/klayout-mcp`, `~/Library/Caches/klayout-mcp`, or `%LOCALAPPDATA%\klayout-mcp\Cache`)
 - `KLAYOUT_MCP_SESSION_TTL_SECONDS`
   - Default: `3600`
 - `KLAYOUT_BIN`
@@ -261,6 +261,8 @@ Request:
 }
 ```
 
+`max_depth` is optional. Top cells are depth 0 and their direct children depth 1; only cells reachable within `max_depth` levels are listed. Omit it to list every cell.
+
 Response:
 
 ```json
@@ -362,7 +364,8 @@ Request:
   ],
   "hierarchy_mode": "recursive",
   "max_shapes": 200,
-  "max_instances": 100
+  "max_instances": 100,
+  "max_texts": 200
 }
 ```
 
@@ -600,6 +603,10 @@ Allowed `style` values:
 - `light`
 - `dark`
 - `mask`
+
+Allowed annotation `kind` values:
+
+- `shape_outline`: outlines each shape in `target_ids`. Targets must be shape IDs returned by `query_region` for the rendered cell. `color` is optional and defaults to `#ff3b30`.
 
 Response:
 

@@ -13,8 +13,10 @@ import klayout.db as kdb
 import klayout.lay as klay
 import klayout.rdb as rdb
 
+from klayout_mcp.bridge.geometry import micron_box
 from klayout_mcp.config import Settings
 from klayout_mcp.errors import KLayoutMCPError
+from klayout_mcp.models import SessionRecord, SessionRuntime
 
 VALID_SCRIPT_TYPES = {"ruby"}
 PARAM_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -25,8 +27,8 @@ def run_drc_script(
     *,
     session_id: str,
     settings: Settings,
-    session: Any,
-    runtime: dict[str, Any],
+    session: SessionRecord,
+    runtime: SessionRuntime,
     script_path: str,
     script_type: str = "ruby",
     params: dict[str, str] | None = None,
@@ -60,7 +62,7 @@ def run_drc_script(
     stderr_path = run_dir / "stderr.txt"
     markers_path = run_dir / "markers.json"
 
-    runtime["layout"].write(str(layout_copy_path))
+    runtime.layout.write(str(layout_copy_path))
     command = _batch_command(
         klayout_bin=settings.klayout_bin,
         script_path=resolved_script,
@@ -101,7 +103,7 @@ def run_drc_script(
         encoding="utf-8",
     )
     rule_counts = _rule_counts(markers)
-    runtime.setdefault("drc_runs", {})[run_id] = {
+    runtime.drc_runs[run_id] = {
         "run_id": run_id,
         "script_path": str(resolved_script),
         "script_type": normalized_type,
@@ -135,8 +137,8 @@ def run_drc_script(
 def extract_markers(
     *,
     session_id: str,
-    session: Any,
-    runtime: dict[str, Any],
+    session: SessionRecord,
+    runtime: SessionRuntime,
     run_id: str,
     include_crops: bool = False,
     crop_size_um: dict[str, float] | None = None,
@@ -157,7 +159,7 @@ def extract_markers(
     Raises:
         KLayoutMCPError: If the requested DRC run is not available.
     """
-    drc_run = runtime.get("drc_runs", {}).get(run_id)
+    drc_run = runtime.drc_runs.get(run_id)
     if drc_run is None:
         raise KLayoutMCPError(
             "INVALID_TARGET",
@@ -319,7 +321,7 @@ def _parse_report(report_path: Path) -> list[dict[str, Any]]:
             {
                 "rule": rule_name,
                 "cell": cell.name() if cell is not None else None,
-                "box_um": _box_to_dict(box),
+                "box_um": micron_box(box),
             }
         )
 
@@ -373,16 +375,6 @@ def _value_box(value: Any) -> kdb.DBox | None:
         box = value.path().bbox()
         return kdb.DBox(box.left, box.bottom, box.right, box.top)
     return None
-
-
-def _box_to_dict(box: kdb.DBox) -> dict[str, float]:
-    """Convert a `DBox` into rounded micron coordinates."""
-    return {
-        "left": round(float(box.left), 6),
-        "bottom": round(float(box.bottom), 6),
-        "right": round(float(box.right), 6),
-        "top": round(float(box.top), 6),
-    }
 
 
 def _rule_counts(markers: list[dict[str, Any]]) -> dict[str, int]:

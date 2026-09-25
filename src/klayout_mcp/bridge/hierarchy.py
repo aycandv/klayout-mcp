@@ -6,7 +6,7 @@ from typing import Any
 
 import klayout.db as kdb
 
-from klayout_mcp.bridge.layout_loader import _dbu_box, _micron_box
+from klayout_mcp.bridge.geometry import dbu_box, micron_box
 from klayout_mcp.errors import KLayoutMCPError
 
 
@@ -15,19 +15,37 @@ def list_cells(layout: kdb.Layout, max_depth: int | None = None) -> list[dict[st
 
     Args:
         layout: Loaded KLayout database.
-        max_depth: Reserved hierarchy depth parameter for contract compatibility.
+        max_depth: Optional hierarchy depth limit. Top cells are depth 0, their direct
+            children depth 1, and so on. `None` returns every cell.
 
     Returns:
         list[dict[str, Any]]: Deterministically sorted cell summaries.
+
+    Raises:
+        KLayoutMCPError: If `max_depth` is negative.
     """
-    top_names = {cell.name for cell in layout.top_cells()}
+    if max_depth is not None and max_depth < 0:
+        raise KLayoutMCPError(
+            "INVALID_TARGET",
+            "max_depth must be zero or greater",
+            {"max_depth": max_depth},
+        )
+
+    top_cells = list(layout.top_cells())
+    top_names = {cell.name for cell in top_cells}
+    if max_depth is None:
+        included = list(layout.each_cell())
+    else:
+        indices = _cell_indices_within_depth(layout, top_cells, max_depth)
+        included = [layout.cell(index) for index in indices]
+
     cells = []
-    for cell in sorted(layout.each_cell(), key=lambda item: item.name):
+    for cell in sorted(included, key=lambda item: item.name):
         cells.append(
             {
                 "name": cell.name,
                 "is_top": cell.name in top_names,
-                "bbox_um": _micron_box(cell.dbbox()),
+                "bbox_um": micron_box(cell.dbbox()),
                 "child_instance_count": sum(1 for _ in cell.each_inst()),
                 "shape_count": _shape_count(layout, cell),
             }
@@ -59,13 +77,32 @@ def describe_cell(layout: kdb.Layout, cell_name: str, depth: int = 1) -> dict[st
 
     return {
         "cell": cell.name,
-        "bbox_um": _micron_box(cell.dbbox()),
-        "bbox_dbu": _dbu_box(cell.bbox()),
+        "bbox_um": micron_box(cell.dbbox()),
+        "bbox_dbu": dbu_box(cell.bbox()),
         "instances": _collect_instances(cell, max(depth, 0)),
         "labels": _collect_labels(layout, cell),
         "shape_counts_by_layer": _shape_counts_by_layer(layout, cell),
         "depth_used": max(depth, 0),
     }
+
+
+def _cell_indices_within_depth(
+    layout: kdb.Layout,
+    top_cells: list[kdb.Cell],
+    max_depth: int,
+) -> set[int]:
+    """Return indexes of cells reachable from the top cells within `max_depth` levels."""
+    seen = {cell.cell_index() for cell in top_cells}
+    frontier = list(seen)
+    for _ in range(max_depth):
+        next_frontier: list[int] = []
+        for cell_index in frontier:
+            for child_index in layout.cell(cell_index).each_child_cell():
+                if child_index not in seen:
+                    seen.add(child_index)
+                    next_frontier.append(child_index)
+        frontier = next_frontier
+    return seen
 
 
 def _shape_count(layout: kdb.Layout, cell: kdb.Cell) -> int:
@@ -103,7 +140,7 @@ def _collect_labels(layout: kdb.Layout, cell: kdb.Cell) -> list[dict[str, Any]]:
             text = shape.text
             entry: dict[str, Any] = {
                 "text": text.string,
-                "bbox_um": _micron_box(shape.dbbox()),
+                "bbox_um": micron_box(shape.dbbox()),
                 "position_dbu": {
                     "x": int(text.trans.disp.x),
                     "y": int(text.trans.disp.y),
@@ -145,7 +182,7 @@ def _collect_instances(cell: kdb.Cell, depth: int) -> list[dict[str, Any]]:
                     "x_um": round(float(transform.disp.x), 6),
                     "y_um": round(float(transform.disp.y), 6),
                 },
-                "bbox_um": _micron_box(instance.dbbox()),
+                "bbox_um": micron_box(instance.dbbox()),
             }
         )
         if depth > 1:

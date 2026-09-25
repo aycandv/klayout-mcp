@@ -9,7 +9,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
-from .models import SessionRecord, utc_now
+from .models import SessionRecord, SessionRuntime, utc_now
 
 
 class SessionStore:
@@ -22,7 +22,7 @@ class SessionStore:
         self._sessions_root.mkdir(parents=True, exist_ok=True)
         self._ttl = timedelta(seconds=ttl_seconds)
         self._sessions: dict[str, SessionRecord] = {}
-        self._runtime: dict[str, dict[str, Any]] = {}
+        self._runtime: dict[str, SessionRuntime] = {}
         self._expired_session_ids: set[str] = set()
 
     @property
@@ -48,7 +48,7 @@ class SessionStore:
         top_cell: str,
         dbu: float,
         metadata: dict[str, Any] | None = None,
-        runtime: dict[str, Any] | None = None,
+        runtime: SessionRuntime | None = None,
     ) -> SessionRecord:
         """Create a session, persist its metadata, and initialize runtime state."""
         self._prune_expired()
@@ -70,7 +70,8 @@ class SessionStore:
             metadata=metadata or {},
         )
         self._sessions[session_id] = session
-        self._runtime[session_id] = runtime or {}
+        if runtime is not None:
+            self._runtime[session_id] = runtime
         self._write_session_file(session)
         return session
 
@@ -108,17 +109,9 @@ class SessionStore:
         self._prune_expired()
         return session_id in self._expired_session_ids
 
-    def get_runtime(self, session_id: str) -> dict[str, Any] | None:
-        """Return the in-memory runtime payload for an active session."""
+    def get_runtime(self, session_id: str) -> SessionRuntime | None:
+        """Return the in-memory runtime state for an active session."""
         return self._runtime.get(session_id)
-
-    def update_runtime(self, session_id: str, values: dict[str, Any]) -> dict[str, Any] | None:
-        """Merge runtime updates into an active session payload."""
-        runtime = self._runtime.get(session_id)
-        if runtime is None:
-            return None
-        runtime.update(values)
-        return runtime
 
     def _next_session_id(self) -> str:
         """Generate a unique session identifier."""

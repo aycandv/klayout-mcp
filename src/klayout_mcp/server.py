@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import inspect
 from functools import wraps
-from pathlib import Path
 from typing import Any, Callable
 
 from mcp.server.fastmcp import FastMCP
@@ -27,11 +27,6 @@ EXPECTED_TOOLS = [
     "run_drc_script",
     "extract_markers",
 ]
-
-
-def _placeholder_tool() -> dict[str, str]:
-    """Return a placeholder payload for tools that are not implemented."""
-    return {"status": "not_implemented"}
 
 
 def _error_response(error: KLayoutMCPError) -> dict[str, Any]:
@@ -70,11 +65,10 @@ def build_server() -> FastMCP:
     Returns:
         FastMCP: Configured server with the contract tool names registered.
     """
-    repo_root = Path(__file__).resolve().parents[2]
-    settings = Settings.from_root(repo_root)
+    settings = Settings.from_environment()
     session_store = SessionStore(settings.artifact_root, settings.session_ttl_seconds)
     layout_tools = LayoutTools(settings=settings, session_store=session_store)
-    implemented_tools = {
+    tool_handlers = {
         "open_layout": layout_tools.open_layout,
         "close_session": layout_tools.close_session,
         "list_cells": layout_tools.list_cells,
@@ -91,11 +85,12 @@ def build_server() -> FastMCP:
 
     server = FastMCP(name="klayout-mcp")
     for tool_name in EXPECTED_TOOLS:
-        tool_fn = implemented_tools.get(tool_name, _placeholder_tool)
+        tool_fn = tool_handlers[tool_name]
         server.add_tool(
             _wrap_tool(tool_name, tool_fn),
             name=tool_name,
-            description=f"KLayout MCP tool: {tool_name}.",
+            # The handler docstring tells the client model when and how to call the tool.
+            description=inspect.cleandoc(tool_fn.__doc__ or ""),
             structured_output=True,
         )
     return server

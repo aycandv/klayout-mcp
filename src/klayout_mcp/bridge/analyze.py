@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
+from klayout_mcp.bridge.geometry import bend_radius_estimate, polyline_length
+from klayout_mcp.bridge.measure import resolve_target
 from klayout_mcp.errors import KLayoutMCPError
-from klayout_mcp.models import ShapeRecord
+from klayout_mcp.models import SessionRuntime, ShapeRecord
 
 
-def analyze_waveguide(*, runtime: dict[str, Any], target_id: str, dbu: float) -> dict[str, Any]:
+def analyze_waveguide(*, runtime: SessionRuntime, target_id: str, dbu: float) -> dict[str, Any]:
     """Analyze one cached waveguide target and return richer path metrics.
 
     Args:
@@ -23,14 +24,7 @@ def analyze_waveguide(*, runtime: dict[str, Any], target_id: str, dbu: float) ->
     Raises:
         KLayoutMCPError: If the target is missing or is not a supported path.
     """
-    shape_refs = runtime.get("shape_refs", {})
-    target = shape_refs.get(target_id)
-    if target is None:
-        raise KLayoutMCPError(
-            "INVALID_TARGET",
-            "Requested target id was not found in the session",
-            {"target_id": target_id},
-        )
+    target = resolve_target(runtime, target_id)
     if target.kind != "path":
         raise KLayoutMCPError(
             "INVALID_TARGET",
@@ -39,8 +33,8 @@ def analyze_waveguide(*, runtime: dict[str, Any], target_id: str, dbu: float) ->
         )
 
     center_x, center_y = _bbox_center_um(target)
-    segment_length_dbu = _polyline_length(target.points_dbu)
-    bend_radius_dbu = _bend_radius_estimate(target)
+    segment_length_dbu = polyline_length(target.points_dbu)
+    bend_radius_dbu = bend_radius_estimate(target.points_dbu)
     orientation = _orientation(target.points_dbu)
 
     return {
@@ -58,25 +52,6 @@ def analyze_waveguide(*, runtime: dict[str, Any], target_id: str, dbu: float) ->
         "is_axis_aligned": _is_axis_aligned(target.points_dbu),
         "analysis_warnings": [],
     }
-
-
-def _polyline_length(points: tuple[tuple[int, int], ...]) -> float:
-    """Return the total length of a polyline in database units."""
-    return sum(
-        math.hypot(end[0] - start[0], end[1] - start[1])
-        for start, end in zip(points, points[1:], strict=False)
-    )
-
-
-def _bend_radius_estimate(target: ShapeRecord) -> float | None:
-    """Estimate bend radius from the shortest adjacent segment, if applicable."""
-    if len(target.points_dbu) < 3:
-        return None
-    segment_lengths = [
-        math.hypot(end[0] - start[0], end[1] - start[1])
-        for start, end in zip(target.points_dbu, target.points_dbu[1:], strict=False)
-    ]
-    return min(segment_lengths) / 2.0
 
 
 def _bbox_center_um(target: ShapeRecord) -> tuple[float, float]:
