@@ -26,7 +26,7 @@ Useful local commands:
 uv run --extra docs mkdocs build --strict
 ```
 
-Dependencies are pinned in the committed `uv.lock`. After changing dependencies in `pyproject.toml`, run `uv lock` and commit the updated `uv.lock`. `release-please` updates the project version in `uv.lock` automatically.
+Dependencies are pinned in the committed `uv.lock`, and CI fails if it is out of date with `pyproject.toml`. After changing dependencies in `pyproject.toml`, run `uv lock` and commit the updated `uv.lock`. `release-please` updates the project version in `uv.lock` automatically.
 
 ## Branch Workflow
 

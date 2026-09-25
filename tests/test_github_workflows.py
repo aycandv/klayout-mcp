@@ -1,6 +1,10 @@
 from pathlib import Path
 import json
+import os
+import subprocess
 import tomllib
+
+import pytest
 
 
 def _workflow_text(name: str) -> str:
@@ -90,6 +94,17 @@ def test_uv_lock_is_committed_and_bumped_by_release_please():
         "path": "uv.lock",
         "jsonpath": "$.package[?(@.name.value=='klayout-mcp')].version",
     } in config["packages"]["."]["extra-files"]
+
+
+@pytest.mark.skipif(
+    os.getenv("GITHUB_ACTIONS") != "true",
+    reason="Only CI starts from a clean checkout",
+)
+def test_ci_dependency_sync_left_uv_lock_unchanged():
+    # CI runs `uv sync` before the tests, and uv rewrites uv.lock only when the committed
+    # lockfile is stale, so any diff here means the lockfile was not updated and committed.
+    result = subprocess.run(["git", "diff", "--quiet", "--", "uv.lock"], check=False)
+    assert result.returncode == 0, "uv.lock is out of date; run `uv lock` and commit it"
 
 
 def test_tag_driven_github_release_workflow_is_removed():

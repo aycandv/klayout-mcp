@@ -7,7 +7,7 @@ uv sync --extra dev --extra docs
 uv run klayout-mcp
 ```
 
-Dependency versions are pinned in the committed `uv.lock`. After changing dependencies in `pyproject.toml`, run `uv lock` and commit the result.
+Dependency versions are pinned in the committed `uv.lock`. After changing dependencies in `pyproject.toml`, run `uv lock` and commit the result; CI fails if the lockfile is out of date.
 
 If an MCP client needs to launch the checkout directly:
 
