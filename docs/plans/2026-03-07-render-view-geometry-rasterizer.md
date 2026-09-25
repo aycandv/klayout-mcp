@@ -256,7 +256,7 @@ Run: `./.venv/bin/python -m pytest -q`
 
 Expected: PASS
 
-Run a manual end-to-end render on `/Users/avit/individual/klayout-mcp/fabtol-10-90-2x4-seed-11.gds` and verify a focused S-bend or coupler cell now shows the actual device profile, not a cell bbox.
+Run a manual end-to-end render on a real device layout (for example a `fabtol-10-90-2x4-seed-11.gds` export) and verify a focused S-bend or coupler cell now shows the actual device profile, not a cell bbox.
 
 **Step 5: Commit**
 

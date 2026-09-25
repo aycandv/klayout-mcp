@@ -5,7 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import klayout.db as kdb
 
 
 def utc_now() -> datetime:
@@ -30,6 +33,29 @@ class MicronBox:
             "right": self.right,
             "top": self.top,
         }
+
+
+@dataclass(slots=True, frozen=True)
+class LayerSummary:
+    """Serializable summary of one layout layer."""
+
+    layer: int
+    datatype: int
+    name: str | None
+    visible: bool
+    shape_count: int
+
+    def to_response(self) -> dict[str, object]:
+        """Return the layer summary in tool-response form."""
+        response: dict[str, object] = {
+            "layer": self.layer,
+            "datatype": self.datatype,
+            "visible": self.visible,
+            "shape_count": self.shape_count,
+        }
+        if self.name:
+            response["name"] = self.name
+        return response
 
 
 @dataclass(slots=True, frozen=True)
@@ -118,3 +144,34 @@ class SessionRecord:
             "last_accessed_at": self.last_accessed_at.isoformat(),
             "metadata": self.metadata,
         }
+
+
+@dataclass(slots=True)
+class SessionRuntime:
+    """In-memory state for one open session that is never written to disk.
+
+    Attributes:
+        layout: Loaded KLayout database.
+        layers: Layer summaries collected when the layout was opened.
+        selected_top_cell: Default cell used by queries and renders.
+        top_cells: All top cell names in the layout.
+        view: Persisted render view with `cell`, `box_um`, and `layers` keys.
+        shape_refs: Shapes returned by `query_region`, keyed by shape ID.
+        drc_runs: DRC run metadata keyed by run ID.
+    """
+
+    layout: kdb.Layout
+    layers: list[LayerSummary]
+    selected_top_cell: str
+    top_cells: list[str]
+    view: dict[str, Any]
+    shape_refs: dict[str, ShapeRecord] = field(default_factory=dict)
+    drc_runs: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    def remember_shape(self, record: ShapeRecord) -> None:
+        """Cache a shape returned to the caller so later tools can resolve its ID."""
+        self.shape_refs[record.id] = record
+
+    def get_shape(self, shape_id: str) -> ShapeRecord | None:
+        """Return a cached shape by ID, or `None` if no query in this session returned it."""
+        return self.shape_refs.get(shape_id)

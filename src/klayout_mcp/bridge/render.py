@@ -7,15 +7,25 @@ from pathlib import Path
 from typing import Any
 
 import klayout.db as kdb
-from PIL import Image, ImageDraw
+from PIL import Image, ImageColor, ImageDraw
 
-from klayout_mcp.bridge.layout_loader import LayerSummary
+from klayout_mcp.bridge.geometry import (
+    micron_box,
+    resolve_layer_indices,
+    shape_kind,
+    transform_shape,
+)
+from klayout_mcp.bridge.measure import resolve_target
 from klayout_mcp.errors import KLayoutMCPError
+from klayout_mcp.models import LayerSummary, SessionRuntime, ShapeRecord
 
 ALLOWED_STYLES = {"light", "dark", "mask"}
 DEFAULT_IMAGE_SIZE = {"width": 1200, "height": 800}
 AUTO_FIT_MARGIN_RATIO = 0.05
 AUTO_FIT_MIN_MARGIN_UM = 0.5
+ALLOWED_ANNOTATION_KINDS = {"shape_outline"}
+DEFAULT_ANNOTATION_COLOR = "#ff3b30"
+ANNOTATION_LINE_WIDTH_PX = 2
 
 
 def default_view_state(
@@ -44,7 +54,7 @@ def default_view_state(
 def update_view_state(
     *,
     layout: kdb.Layout,
-    runtime: dict[str, Any],
+    runtime: SessionRuntime,
     box: dict[str, float] | None = None,
     cell: str | None = None,
     layers: list[dict[str, int | str]] | None = None,
@@ -61,7 +71,7 @@ def update_view_state(
     Returns:
         dict[str, Any]: Updated persisted view state.
     """
-    current = _current_view_state(layout, runtime)
+    current = runtime.view
     resolved_cell = _resolve_cell(layout, cell or current["cell"])
     next_box = _resolve_view_box(
         layout=layout,
@@ -73,9 +83,9 @@ def update_view_state(
     next_view = {
         "cell": resolved_cell,
         "box_um": next_box,
-        "layers": _resolve_layers(runtime["layers"], layers or current["layers"]),
+        "layers": _resolve_layers(runtime.layers, layers or current["layers"]),
     }
-    runtime["view"] = next_view
+    runtime.view = next_view
     return next_view
 
 
@@ -85,7 +95,7 @@ def render_view(
     source_path: Path,
     artifact_dir: Path,
     layout: kdb.Layout,
-    runtime: dict[str, Any],
+    runtime: SessionRuntime,
     box: dict[str, float] | None = None,
     cell: str | None = None,
     layers: list[dict[str, int | str]] | None = None,
@@ -106,7 +116,9 @@ def render_view(
         layers: Optional replacement visible layers.
         image_size: Optional output image size.
         style: Render style name.
-        annotations: Reserved annotation payload.
+        annotations: Optional overlays. Each entry is
+            `{"kind": "shape_outline", "target_ids": [...], "color": "#rrggbb"}` and outlines
+            shapes previously returned by `query_region` for the rendered cell.
 
     Returns:
         dict[str, Any]: Render metadata and output artifact path.
@@ -114,7 +126,7 @@ def render_view(
     Raises:
         KLayoutMCPError: If the view request is invalid.
     """
-    del source_path, annotations
+    del source_path
 
     if style not in ALLOWED_STYLES:
         raise KLayoutMCPError(
@@ -123,6 +135,8 @@ def render_view(
             {"style": style},
         )
 
+    # Validate annotations before the view update so a bad request leaves the view unchanged.
+    outlines = _resolve_annotations(runtime, annotations or [], cell or runtime.view["cell"])
     view_state = update_view_state(
         layout=layout,
         runtime=runtime,
@@ -142,6 +156,12 @@ def render_view(
         width=width,
         height=height,
         style=style,
+    )
+    _draw_outlines(
+        image=image,
+        outlines=outlines,
+        box_um=view_state["box_um"],
+        dbu=float(layout.dbu),
     )
     image.save(output_path)
 
@@ -218,12 +238,12 @@ def _iter_render_polygons(
         ]
     ] = []
 
-    for layer_index in _resolve_layer_indices(layout, selected_layers):
+    for layer_index in resolve_layer_indices(layout, selected_layers):
         info = layout.get_info(layer_index)
         iterator = cell.begin_shapes_rec_overlapping(layer_index, query_box)
         while not iterator.at_end():
             shape = iterator.shape()
-            transformed_shape = _transform_shape(shape, iterator.trans())
+            transformed_shape = transform_shape(shape, iterator.trans())
             polygon_data = _shape_to_polygon_data(shape, transformed_shape, dbu)
             if polygon_data is not None:
                 bbox = transformed_shape.bbox()
@@ -232,7 +252,7 @@ def _iter_render_polygons(
                         (
                             info.layer,
                             info.datatype,
-                            _shape_kind(shape),
+                            shape_kind(shape),
                             int(bbox.left),
                             int(bbox.bottom),
                             int(bbox.right),
@@ -269,6 +289,84 @@ def _shape_to_polygon_data(
         holes = [_polygon_points_um(polygon.each_point_hole(index), dbu) for index in range(polygon.holes())]
         return (hull, holes)
     return None
+
+
+def _resolve_annotations(
+    runtime: SessionRuntime,
+    annotations: list[dict[str, Any]],
+    render_cell: str,
+) -> list[tuple[ShapeRecord, tuple[int, int, int]]]:
+    """Validate annotation requests and resolve them to cached shapes and colors."""
+    outlines: list[tuple[ShapeRecord, tuple[int, int, int]]] = []
+    for annotation in annotations:
+        kind = annotation.get("kind")
+        if kind not in ALLOWED_ANNOTATION_KINDS:
+            raise KLayoutMCPError(
+                "INVALID_TARGET",
+                "Unsupported annotation kind",
+                {"kind": kind, "allowed": sorted(ALLOWED_ANNOTATION_KINDS)},
+            )
+        color_value = str(annotation.get("color") or DEFAULT_ANNOTATION_COLOR)
+        try:
+            color = ImageColor.getrgb(color_value)[:3]
+        except ValueError as exc:
+            raise KLayoutMCPError(
+                "INVALID_TARGET",
+                "Annotation color is not a valid color",
+                {"color": color_value},
+            ) from exc
+        target_ids = annotation.get("target_ids") or []
+        if not target_ids:
+            raise KLayoutMCPError(
+                "INVALID_TARGET",
+                "Annotation requires at least one target id",
+                {"annotation": annotation},
+            )
+        for target_id in target_ids:
+            target = resolve_target(runtime, str(target_id))
+            # Cached coordinates are relative to the queried cell, so they only line up
+            # when the render uses that same cell.
+            if target.cell != render_cell:
+                raise KLayoutMCPError(
+                    "INVALID_TARGET",
+                    "Annotation target was queried in a different cell than the render",
+                    {
+                        "target_id": target.id,
+                        "target_cell": target.cell,
+                        "render_cell": render_cell,
+                    },
+                )
+            outlines.append((target, color))
+    return outlines
+
+
+def _draw_outlines(
+    *,
+    image: Image.Image,
+    outlines: list[tuple[ShapeRecord, tuple[int, int, int]]],
+    box_um: dict[str, float],
+    dbu: float,
+) -> None:
+    """Draw closed outlines for annotated shapes on top of the rendered geometry."""
+    if not outlines:
+        return
+    draw = ImageDraw.Draw(image)
+    width, height = image.size
+    for target, color in outlines:
+        projected = _project_points(_outline_points_um(target, dbu), box_um, width, height)
+        draw.line(projected + projected[:1], fill=color, width=ANNOTATION_LINE_WIDTH_PX)
+
+
+def _outline_points_um(target: ShapeRecord, dbu: float) -> list[tuple[float, float]]:
+    """Return the outline of a cached shape in micron coordinates."""
+    if target.kind == "polygon" and len(target.points_dbu) >= 3:
+        return [(x * dbu, y * dbu) for x, y in target.points_dbu]
+    if target.kind == "path" and target.path_width_dbu and len(target.points_dbu) >= 2:
+        # Path end extensions are not cached, so the outline uses flush ends.
+        path = kdb.Path([kdb.Point(x, y) for x, y in target.points_dbu], target.path_width_dbu)
+        return _simple_polygon_points_um(path.simple_polygon(), dbu)
+    left, bottom, right, top = target.bbox_dbu
+    return _box_points_um(kdb.Box(left, bottom, right, top), dbu)
 
 
 def _box_points_um(box: kdb.Box, dbu: float) -> list[tuple[float, float]]:
@@ -313,20 +411,6 @@ def _project_points(
     return projected
 
 
-def _current_view_state(layout: kdb.Layout, runtime: dict[str, Any]) -> dict[str, Any]:
-    """Return the persisted view state, creating the default when absent."""
-    if "view" in runtime:
-        return runtime["view"]
-
-    default = default_view_state(
-        selected_top_cell=runtime["selected_top_cell"],
-        bbox_um=_bbox_for_cell(layout, runtime["selected_top_cell"]),
-        layers=runtime["layers"],
-    )
-    runtime["view"] = default
-    return default
-
-
 def _bbox_for_cell(layout: kdb.Layout, cell_name: str) -> dict[str, float]:
     """Return the rounded micron bounding box for a named cell."""
     cell = layout.cell(cell_name)
@@ -336,13 +420,7 @@ def _bbox_for_cell(layout: kdb.Layout, cell_name: str) -> dict[str, float]:
             "Requested cell was not found",
             {"cell": cell_name},
         )
-    box = cell.dbbox()
-    return {
-        "left": round(float(box.left), 6),
-        "bottom": round(float(box.bottom), 6),
-        "right": round(float(box.right), 6),
-        "top": round(float(box.top), 6),
-    }
+    return micron_box(cell.dbbox())
 
 
 def _resolve_view_box(
@@ -410,23 +488,6 @@ def _resolve_layers(
     return resolved
 
 
-def _resolve_layer_indices(layout: kdb.Layout, selected_layers: list[dict[str, Any]]) -> list[int]:
-    """Resolve normalized visible layers back to concrete layout layer indices."""
-    requested = {(int(layer["layer"]), int(layer["datatype"])) for layer in selected_layers}
-    resolved = [
-        layer_index
-        for layer_index in layout.layer_indices()
-        if (
-            layout.get_info(layer_index).layer,
-            layout.get_info(layer_index).datatype,
-        ) in requested
-    ]
-    return sorted(
-        resolved,
-        key=lambda index: (layout.get_info(index).layer, layout.get_info(index).datatype),
-    )
-
-
 def _normalize_box(box: dict[str, float]) -> dict[str, float]:
     """Validate and round a view box in microns."""
     left = float(box["left"])
@@ -479,32 +540,6 @@ def _shape_color(style: str) -> tuple[int, int, int]:
 def _render_target_box(box_um: dict[str, float]) -> kdb.DBox:
     """Convert a normalized micron box into a KLayout render target box."""
     return kdb.DBox(box_um["left"], box_um["bottom"], box_um["right"], box_um["top"])
-
-
-def _shape_kind(shape: kdb.Shape) -> str:
-    """Return the contract shape kind for a KLayout shape."""
-    if shape.is_path():
-        return "path"
-    if shape.is_box():
-        return "box"
-    if shape.is_polygon():
-        return "polygon"
-    if shape.is_text():
-        return "text"
-    return "shape"
-
-
-def _transform_shape(shape: kdb.Shape, transform: Any) -> Any:
-    """Apply an iterator transform to the current shape payload."""
-    if shape.is_path():
-        return shape.path.transformed(transform)
-    if shape.is_box():
-        return shape.box.transformed(transform)
-    if shape.is_polygon():
-        return shape.polygon.transformed(transform)
-    if shape.is_text():
-        return shape.text.transformed(transform)
-    return shape
 
 
 def _layer_to_ref(layer: LayerSummary) -> dict[str, Any]:

@@ -5,8 +5,9 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from klayout_mcp.bridge.geometry import bend_radius_estimate, polyline_length
 from klayout_mcp.errors import KLayoutMCPError
-from klayout_mcp.models import ShapeRecord
+from klayout_mcp.models import SessionRuntime, ShapeRecord
 
 TARGET_COUNTS = {
     "path_width": 1,
@@ -20,7 +21,7 @@ TARGET_COUNTS = {
 
 def measure_geometry(
     *,
-    runtime: dict[str, Any],
+    runtime: SessionRuntime,
     mode: str,
     target_ids: list[str],
     dbu: float,
@@ -53,8 +54,7 @@ def measure_geometry(
             {"mode": mode, "expected": expected_count, "received": len(target_ids)},
         )
 
-    shape_refs = runtime.get("shape_refs", {})
-    targets = [_resolve_target(shape_refs, target_id) for target_id in target_ids]
+    targets = [resolve_target(runtime, target_id) for target_id in target_ids]
 
     if mode == "path_width":
         value_dbu = _path_width(targets[0])
@@ -84,14 +84,28 @@ def measure_geometry(
     raise KLayoutMCPError("INTERNAL_ERROR", "Unhandled measurement mode", {"mode": mode})
 
 
-def _resolve_target(shape_refs: dict[str, ShapeRecord], target_id: str) -> ShapeRecord:
-    """Resolve one cached shape reference by ID."""
-    target = shape_refs.get(target_id)
+def resolve_target(runtime: SessionRuntime, target_id: str) -> ShapeRecord:
+    """Resolve one cached shape reference by ID.
+
+    Args:
+        runtime: Session runtime state holding the shape cache.
+        target_id: Shape ID previously returned by `query_region`.
+
+    Returns:
+        ShapeRecord: The cached shape.
+
+    Raises:
+        KLayoutMCPError: If no `query_region` call in this session returned the ID.
+    """
+    target = runtime.get_shape(target_id)
     if target is None:
         raise KLayoutMCPError(
             "INVALID_TARGET",
             "Requested target id was not found in the session",
-            {"target_id": target_id},
+            {
+                "target_id": target_id,
+                "hint": "Use an id returned by query_region in this session.",
+            },
         )
     return target
 
@@ -126,7 +140,7 @@ def _segment_length(target: ShapeRecord) -> float:
             "Target does not have enough points for segment length",
             {"target_id": target.id},
         )
-    return _polyline_length(target.points_dbu)
+    return polyline_length(target.points_dbu)
 
 
 def _centerline_distance(first: ShapeRecord, second: ShapeRecord) -> float:
@@ -149,17 +163,14 @@ def _edge_gap(first: ShapeRecord, second: ShapeRecord) -> float:
 
 def _bend_radius_estimate(target: ShapeRecord) -> float:
     """Estimate bend radius from the shortest adjacent path segment."""
-    if len(target.points_dbu) < 3:
+    estimate = bend_radius_estimate(target.points_dbu)
+    if estimate is None:
         raise KLayoutMCPError(
             "INVALID_TARGET",
             "Target does not have enough segments for bend radius estimation",
             {"target_id": target.id},
         )
-    segment_lengths = [
-        math.hypot(end[0] - start[0], end[1] - start[1])
-        for start, end in zip(target.points_dbu, target.points_dbu[1:], strict=False)
-    ]
-    return min(segment_lengths) / 2.0
+    return estimate
 
 
 def _overlap_area(first: ShapeRecord, second: ShapeRecord) -> int:
@@ -171,14 +182,6 @@ def _overlap_area(first: ShapeRecord, second: ShapeRecord) -> int:
     if left >= right or bottom >= top:
         return 0
     return int((right - left) * (top - bottom))
-
-
-def _polyline_length(points: tuple[tuple[int, int], ...]) -> float:
-    """Return the total length of a polyline in database units."""
-    return sum(
-        math.hypot(end[0] - start[0], end[1] - start[1])
-        for start, end in zip(points, points[1:], strict=False)
-    )
 
 
 def _bbox_center(target: ShapeRecord) -> tuple[float, float]:

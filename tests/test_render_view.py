@@ -137,3 +137,113 @@ async def test_render_view_dark_style_uses_dark_background(
     )
 
     assert _pixel(Path(result["image"]["path"]), 0.05, 0.05) == (0, 0, 0)
+
+
+def _count_pixels(image_path: Path, color: tuple[int, int, int]) -> int:
+    with Image.open(image_path) as image:
+        return sum(1 for pixel in image.convert("RGB").getdata() if pixel == color)
+
+
+@pytest.mark.anyio
+async def test_render_view_draws_shape_outline_annotation(mcp_client, opened_label_session):
+    queried = await mcp_client.call(
+        "query_region",
+        {
+            "session_id": opened_label_session,
+            "box": {"left": -5.0, "bottom": -5.0, "right": 30.0, "top": 5.0},
+        },
+    )
+    path_id = next(shape["id"] for shape in queried["shapes"] if shape["kind"] == "path")
+    request = {
+        "session_id": opened_label_session,
+        "box": {"left": -5.0, "bottom": -5.0, "right": 30.0, "top": 5.0},
+        "image_size": {"width": 400, "height": 200},
+        "style": "light",
+    }
+
+    plain = await mcp_client.call("render_view", request)
+    annotated = await mcp_client.call(
+        "render_view",
+        {
+            **request,
+            "annotations": [
+                {"kind": "shape_outline", "target_ids": [path_id], "color": "#ff0000"},
+            ],
+        },
+    )
+
+    assert _count_pixels(Path(plain["image"]["path"]), (255, 0, 0)) == 0
+    assert _count_pixels(Path(annotated["image"]["path"]), (255, 0, 0)) > 100
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "annotation",
+    [
+        {"kind": "arrow", "target_ids": ["shp_missing"]},
+        {"kind": "shape_outline", "target_ids": ["shp_missing"]},
+        {"kind": "shape_outline", "target_ids": []},
+    ],
+)
+async def test_render_view_rejects_invalid_annotations(mcp_client, opened_session, annotation):
+    result = await mcp_client.call_expect_error(
+        "render_view",
+        {"session_id": opened_session, "annotations": [annotation]},
+    )
+
+    assert result["code"] == "INVALID_TARGET"
+
+
+@pytest.mark.anyio
+async def test_render_view_rejects_invalid_annotation_color(mcp_client, opened_session):
+    queried = await mcp_client.call(
+        "query_region",
+        {
+            "session_id": opened_session,
+            "box": {"left": 0.0, "bottom": -5.0, "right": 50.0, "top": 5.0},
+        },
+    )
+    result = await mcp_client.call_expect_error(
+        "render_view",
+        {
+            "session_id": opened_session,
+            "annotations": [
+                {
+                    "kind": "shape_outline",
+                    "target_ids": [queried["shapes"][0]["id"]],
+                    "color": "not-a-color",
+                },
+            ],
+        },
+    )
+
+    assert result["code"] == "INVALID_TARGET"
+
+
+@pytest.mark.anyio
+async def test_render_view_rejects_annotation_from_another_cell(
+    mcp_client,
+    opened_hierarchical_session,
+):
+    queried = await mcp_client.call(
+        "query_region",
+        {
+            "session_id": opened_hierarchical_session,
+            "box": {"left": 0.0, "bottom": 0.0, "right": 30.0, "top": 10.0},
+        },
+    )
+    result = await mcp_client.call_expect_error(
+        "render_view",
+        {
+            "session_id": opened_hierarchical_session,
+            "cell": "CHILD",
+            "annotations": [
+                {"kind": "shape_outline", "target_ids": [queried["shapes"][0]["id"]]},
+            ],
+        },
+    )
+    view = await mcp_client.call("set_view", {"session_id": opened_hierarchical_session})
+
+    assert result["code"] == "INVALID_TARGET"
+    assert result["details"]["render_cell"] == "CHILD"
+    assert view["view"]["cell"] == "TOP"

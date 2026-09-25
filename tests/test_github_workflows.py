@@ -75,5 +75,22 @@ def test_release_please_config_matches_current_python_package_version():
     assert manifest["."] == version
 
 
+def test_uv_lock_is_committed_and_bumped_by_release_please():
+    assert Path("uv.lock").is_file()
+    assert "uv.lock" not in Path(".gitignore").read_text().splitlines()
+
+    lock = tomllib.loads(Path("uv.lock").read_text())
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text())
+    project = next(package for package in lock["package"] if package["name"] == "klayout-mcp")
+    assert project["version"] == pyproject["project"]["version"]
+
+    config = json.loads(Path("release-please-config.json").read_text())
+    assert {
+        "type": "toml",
+        "path": "uv.lock",
+        "jsonpath": "$.package[?(@.name.value=='klayout-mcp')].version",
+    } in config["packages"]["."]["extra-files"]
+
+
 def test_tag_driven_github_release_workflow_is_removed():
     assert not Path(".github/workflows/github-release.yml").exists()
