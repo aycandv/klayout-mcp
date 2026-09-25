@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -10,9 +9,6 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import klayout.db as kdb
-
-# Bound the per-session shape cache so long agent sessions cannot grow it without limit.
-MAX_SHAPE_REFS = 10_000
 
 
 def utc_now() -> datetime:
@@ -160,9 +156,8 @@ class SessionRuntime:
         selected_top_cell: Default cell used by queries and renders.
         top_cells: All top cell names in the layout.
         view: Persisted render view with `cell`, `box_um`, and `layers` keys.
-        shape_refs: Shapes returned by `query_region`, keyed by shape ID, oldest first.
+        shape_refs: Shapes returned by `query_region`, keyed by shape ID.
         drc_runs: DRC run metadata keyed by run ID.
-        max_shape_refs: Maximum number of cached shapes before the oldest are evicted.
     """
 
     layout: kdb.Layout
@@ -170,17 +165,13 @@ class SessionRuntime:
     selected_top_cell: str
     top_cells: list[str]
     view: dict[str, Any]
-    shape_refs: OrderedDict[str, ShapeRecord] = field(default_factory=OrderedDict)
+    shape_refs: dict[str, ShapeRecord] = field(default_factory=dict)
     drc_runs: dict[str, dict[str, Any]] = field(default_factory=dict)
-    max_shape_refs: int = MAX_SHAPE_REFS
 
     def remember_shape(self, record: ShapeRecord) -> None:
-        """Cache a queried shape, evicting the least recently queried ones past the limit."""
+        """Cache a shape returned to the caller so later tools can resolve its ID."""
         self.shape_refs[record.id] = record
-        self.shape_refs.move_to_end(record.id)
-        while len(self.shape_refs) > self.max_shape_refs:
-            self.shape_refs.popitem(last=False)
 
     def get_shape(self, shape_id: str) -> ShapeRecord | None:
-        """Return a cached shape by ID, or `None` if it was never queried or was evicted."""
+        """Return a cached shape by ID, or `None` if no query in this session returned it."""
         return self.shape_refs.get(shape_id)

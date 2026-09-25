@@ -95,7 +95,7 @@ def resolve_target(runtime: SessionRuntime, target_id: str) -> ShapeRecord:
         ShapeRecord: The cached shape.
 
     Raises:
-        KLayoutMCPError: If the ID is unknown or was evicted from the cache.
+        KLayoutMCPError: If no `query_region` call in this session returned the ID.
     """
     target = runtime.get_shape(target_id)
     if target is None:
@@ -104,7 +104,7 @@ def resolve_target(runtime: SessionRuntime, target_id: str) -> ShapeRecord:
             "Requested target id was not found in the session",
             {
                 "target_id": target_id,
-                "hint": "Run query_region over the shape again to refresh its id.",
+                "hint": "Use an id returned by query_region in this session.",
             },
         )
     return target

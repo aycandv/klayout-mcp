@@ -38,7 +38,7 @@ def query_region(
 
     Args:
         layout: Loaded KLayout database.
-        runtime: Session runtime state used for stable shape references.
+        runtime: Session runtime state that caches the returned shapes by ID.
         box: Query box in microns.
         cell_name: Optional cell override.
         layers: Optional layer filter.
@@ -99,7 +99,6 @@ def query_region(
                 layer_ref=layer_ref,
                 query_cell_name=query_cell_name,
                 query_box=query_box,
-                runtime=runtime,
                 dbu=dbu,
             )
             continue
@@ -112,7 +111,6 @@ def query_region(
             layer_ref=layer_ref,
             query_cell_name=query_cell_name,
             query_box=query_box,
-            runtime=runtime,
             dbu=dbu,
         )
 
@@ -140,6 +138,11 @@ def query_region(
             item["bbox_um"]["bottom"],
         ),
     )
+    returned_shapes = sorted_shapes[:max_shapes]
+    # Later tools resolve shapes by the IDs handed out here. Cache only those, so memory
+    # tracks what the caller has seen and issued IDs stay valid for the whole session.
+    for shape in returned_shapes:
+        runtime.remember_shape(shape)
     instances = _collect_instances(query_cell, query_box)
 
     return {
@@ -151,7 +154,7 @@ def query_region(
             "instance_count": len(instances),
             "text_count": len(sorted_texts),
         },
-        "shapes": [shape.to_dict() for shape in sorted_shapes[:max_shapes]],
+        "shapes": [shape.to_dict() for shape in returned_shapes],
         "instances": instances[:max_instances],
         "texts": sorted_texts[:max_texts],
         "truncation": {
@@ -171,7 +174,6 @@ def _collect_top_shapes(
     layer_ref: LayerRef,
     query_cell_name: str,
     query_box: kdb.DBox,
-    runtime: SessionRuntime,
     dbu: float,
 ) -> None:
     """Collect directly overlapping shapes from the query cell only."""
@@ -185,7 +187,6 @@ def _collect_top_shapes(
             query_cell_name=query_cell_name,
             leaf_cell_name=cell.name,
             instance_path=(query_cell_name,),
-            runtime=runtime,
             dbu=dbu,
         )
 
@@ -199,7 +200,6 @@ def _collect_recursive_shapes(
     layer_ref: LayerRef,
     query_cell_name: str,
     query_box: kdb.DBox,
-    runtime: SessionRuntime,
     dbu: float,
 ) -> None:
     """Collect overlapping shapes through hierarchical traversal."""
@@ -219,7 +219,6 @@ def _collect_recursive_shapes(
             query_cell_name=query_cell_name,
             leaf_cell_name=iterator.cell().name,
             instance_path=tuple(instance_path),
-            runtime=runtime,
             dbu=dbu,
         )
         iterator.next()
@@ -235,7 +234,6 @@ def _add_shape_or_text(
     query_cell_name: str,
     leaf_cell_name: str,
     instance_path: tuple[str, ...],
-    runtime: SessionRuntime,
     dbu: float,
 ) -> None:
     """Route one queried object into the shape or text result buckets."""
@@ -259,8 +257,6 @@ def _add_shape_or_text(
         instance_path=instance_path,
         dbu=dbu,
     )
-    # Measurements later refer back to shapes by stable IDs from this query pass.
-    runtime.remember_shape(record)
     shape_records.append(record)
 
 
